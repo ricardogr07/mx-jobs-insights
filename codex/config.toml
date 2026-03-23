@@ -1,0 +1,143 @@
+[project]
+name = "mx-jobs-insights"
+shell = "powershell"
+platform = "windows"
+python_floor = "3.11"
+docs_root = "docs"
+package_namespace = "mexico_linkedin_jobs_portfolio"
+
+[rules]
+review_before_commit = true
+no_commit_without_user_approval = true
+prefer_parallel_subagents = true
+prefer_primary_sources = true
+no_destructive_git = true
+no_secrets_in_repo = true
+production_logic_in_src_and_scripts = true
+notebooks_exploratory_only = true
+
+[commands.bootstrap]
+command = "python -m pip install -e .[dev]"
+purpose = "Install the local development toolchain for lint, docs, test, and build work."
+status = "ready"
+
+[commands.status]
+command = "git status --short"
+purpose = "Inspect the current worktree before and after a reviewed step."
+status = "ready"
+
+[commands.diff]
+command = "git diff --stat"
+purpose = "Summarize the current step's file-level changes for review."
+status = "ready"
+
+[commands.python_check]
+command = "python --version"
+purpose = "Confirm the active Python interpreter before tooling bootstrap lands."
+status = "ready"
+
+[commands.test]
+command = "python -m pytest -q"
+purpose = "Run the default offline test suite once tests are added."
+status = "planned"
+
+[commands.preflight]
+command = "python -m tox -e preflight"
+purpose = "Run the current local quality gate for lint, docs, and build checks."
+status = "ready"
+
+[commands.docs]
+command = "python -m mkdocs build --strict"
+purpose = "Build project docs through MkDocs."
+status = "ready"
+
+[commands.build]
+command = "python -m build --no-isolation"
+purpose = "Build the package from the current working tree."
+status = "ready"
+
+[integrations.openai_docs]
+kind = "mcp"
+status = "recommended"
+availability = "recommended_later"
+purpose = "Official OpenAI documentation lookup for narrative generation and future OpenAI integration work."
+add_command = "codex mcp add openaiDeveloperDocs --url https://developers.openai.com/mcp"
+reference = "https://platform.openai.com/docs/docs-mcp"
+session_visible = false
+
+[integrations.github_cli]
+kind = "command"
+status = "installed_needs_auth"
+availability = "blocked_or_misconfigured"
+purpose = "Local GitHub operations such as branch inspection, issue lookup, and workflow checks once authenticated."
+check_command = "gh auth status"
+reference = "https://cli.github.com/"
+
+[integrations.github_mcp]
+kind = "mcp"
+status = "recommended_optional"
+availability = "recommended_later"
+purpose = "Structured GitHub repository context and operations through an MCP server."
+prerequisites = ["valid GitHub token", "remote server or Docker-based setup"]
+references = [
+  "https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp/use-the-github-mcp-server",
+  "https://github.com/github/github-mcp-server",
+]
+session_visible = false
+
+[subagents.repo_bootstrap]
+purpose = "Own scaffolding, package skeleton setup, and tooling shell work."
+write_scope = "root config files, src package skeleton, tests skeleton"
+use_when = "Bootstrapping the repo or adding foundational tooling."
+
+[subagents.docs_devx]
+purpose = "Own internal docs, Codex guidance, and developer workflow material."
+write_scope = "docs/, codex/, AGENTS.md"
+use_when = "Updating docs, internal guidance, or enablement material."
+
+[subagents.data_contracts]
+purpose = "Own source ingestion contracts, schema mapping notes, and fixture planning."
+write_scope = "source adapters, schema docs, sample fixtures"
+use_when = "Defining or revising ingestion from the LinkedInWebScraper data branch."
+
+[subagents.analytics_reports]
+purpose = "Own KPI definitions, report templates, and narrative payload design."
+write_scope = "analytics/, reports/, report docs"
+use_when = "Building metrics, report rendering, or narrative generation layers."
+
+[subagents.dashboard_site]
+purpose = "Own Streamlit dashboard and public site UX work."
+write_scope = "app/, site templates, Pages docs"
+use_when = "Building interactive exploration or static site presentation layers."
+
+[subagents.automation_release]
+purpose = "Own workflows, deployment contracts, and publication automation."
+write_scope = ".github/, release docs, runtime docs"
+use_when = "Adding schedules, CI/CD, deployment, or publishing automation."
+
+[skills.current.openai_docs]
+status = "observed_builtin"
+purpose = "Use official OpenAI documentation as the primary source for OpenAI-related work."
+
+[skills.current.skill_creator]
+status = "observed_builtin"
+purpose = "Design or revise reusable Codex skills."
+
+[skills.current.skill_installer]
+status = "observed_builtin"
+purpose = "Install supported Codex skills into the local environment."
+
+[skills.current.neon_pairwise_review]
+status = "observed_builtin"
+purpose = "Run governed pairwise review workflows when that review format is needed."
+
+[skills.future.mx_jobs_portfolio_maintainer]
+status = "planned"
+purpose = "Guide phased portfolio development with strict review gates, data-contract awareness, and safe subagent partitioning."
+target_responsibilities = [
+  "phase-aware execution checkpoints",
+  "review-before-commit workflow reminders",
+  "data-branch contract awareness",
+  "safe subagent work partitioning",
+  "docs and automation alignment by phase",
+]
