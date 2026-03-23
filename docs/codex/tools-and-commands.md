@@ -1,6 +1,6 @@
 # Tools and Commands
 
-This page lists the exact local commands and tool statuses that matter during the current bootstrap and Phase-1 scaffolding stage.
+This page lists the exact local commands and tool statuses that matter during the current bootstrap, Phase 1, and Phase 2 report scaffolding stages.
 
 ## Repo Commands
 
@@ -69,10 +69,27 @@ This page lists the exact local commands and tool statuses that matter during th
 - Purpose: run the first non-dry-run curated write path and persist DuckDB state plus Parquet sidecars.
 - Status: `ready`
 
+### `report_dry_run_weekly`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report --cadence weekly --as-of 2026-03-23 --curated-root artifacts/curated --output-root artifacts/reports --dry-run`
+- Purpose: validate closed-week period resolution, aggregate metrics, and the non-writing `report` summary path from curated data.
+- Status: `ready`
+
+### `report_write_monthly`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report --cadence monthly --as-of 2026-04-01 --curated-root artifacts/curated --output-root artifacts/reports`
+- Purpose: validate the full monthly report write path, including bilingual Markdown/HTML, public CSV filtering, and OpenAI narration when runtime env is configured.
+- Status: `ready`
+
 ### `fixtures_regen`
 - Command: `python scripts/make_sample_data.py`
 - Purpose: regenerate the checked-in Phase-1 sample fixtures under `tests/data/upstream_workspace` from a local upstream workspace.
 - Status: `ready`
+
+## Runtime Environment
+
+### `report`
+- Required for non-dry-run: `OPENAI_API_KEY`, `MX_JOBS_OPENAI_MODEL`, `MX_JOBS_PUBLIC_KEY_SALT`
+- Optional override: `MX_JOBS_OPENAI_BASE_URL`
+- Purpose: provide the OpenAI auth, model selection, public-key salt, and optional API base URL used by Phase 2 report narration and publication.
 
 ## Local Tool Status
 
@@ -97,7 +114,7 @@ This page lists the exact local commands and tool statuses that matter during th
 ## Why The Commands Use Conservative Status Labels
 - This repo is now past the initial bootstrap and is entering Phase 1.
 - Shell tools are marked by current observed behavior, not by ideal setup.
-- Test is now `ready` because the offline suite is green, while the current Phase-1 shells cover both dry-run validation and the first curated write path.
+- Test is now `ready` because the offline suite is green, while the current Phase-1 shells and the Phase-2 report commands cover the reviewed backend surfaces.
 - Bootstrap, docs, build, and preflight stay `ready` because the necessary project config files already exist.
 
 ## Phase 1 Planned Shells
@@ -132,3 +149,16 @@ These commands are planned references for the ingestion and curation scaffolding
 - Command: `python scripts/make_sample_data.py`
 - Status: ready
 - Purpose: regenerate the checked-in deterministic SQLite and CSV fixtures under `tests/data/upstream_workspace`.
+
+## Phase 2 Planned Shells
+These commands document the reviewed Phase 2 report surface and the runtime environment it needs.
+
+### `report --cadence weekly --dry-run`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report --cadence weekly --as-of 2026-03-23 --curated-root artifacts/curated --output-root artifacts/reports --dry-run`
+- Status: ready
+- Purpose: validate the closed-week report summary path without writing report artifacts or calling OpenAI.
+
+### `report --cadence monthly`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report --cadence monthly --as-of 2026-04-01 --curated-root artifacts/curated --output-root artifacts/reports`
+- Status: ready
+- Purpose: validate the monthly report write path, including bilingual Markdown/HTML, public CSV filtering, and OpenAI narration when runtime env is configured.

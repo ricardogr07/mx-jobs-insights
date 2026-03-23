@@ -88,6 +88,16 @@ command = "python scripts/make_sample_data.py"
 purpose = "Regenerate the checked-in Phase-1 sample fixtures under tests/data/upstream_workspace from a local upstream workspace."
 status = "ready"
 
+[commands.report_dry_run_weekly]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report --cadence weekly --as-of 2026-03-23 --curated-root artifacts/curated --output-root artifacts/reports --dry-run"
+purpose = "Compute a closed-week report summary from curated data without writing artifacts or calling OpenAI."
+status = "ready"
+
+[commands.report_write_monthly]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report --cadence monthly --as-of 2026-04-01 --curated-root artifacts/curated --output-root artifacts/reports"
+purpose = "Write the monthly report artifacts, public CSV, and OpenAI narration when the runtime env is configured."
+status = "ready"
+
 [integrations.openai_docs]
 kind = "mcp"
 status = "recommended"
@@ -157,10 +167,16 @@ purpose = "Own deterministic source fixtures, regeneration helpers, equivalence 
 write_scope = "tests, scripts, docs/development"
 use_when = "Use when building sample artifacts or validating SQLite/CSV parity and smoke paths."
 
+[runtime_env.report]
+purpose = "Phase 2 report narration and publication config."
+required = ["OPENAI_API_KEY", "MX_JOBS_OPENAI_MODEL", "MX_JOBS_PUBLIC_KEY_SALT"]
+optional = ["MX_JOBS_OPENAI_BASE_URL"]
+status = "documented"
+
 [subagents.analytics_reports]
-purpose = "Own KPI definitions, report templates, and narrative payload design."
-write_scope = "analytics/, reports/, report docs"
-use_when = "Building metrics, report rendering, or narrative generation layers."
+purpose = "Own KPI definitions, report rendering, publication filters, and narrative payload design."
+write_scope = "src/mexico_linkedin_jobs_portfolio/analytics, src/mexico_linkedin_jobs_portfolio/reporting, src/mexico_linkedin_jobs_portfolio/models, tests, docs/development"
+use_when = "Building metrics, report rendering, public CSV filtering, or narrative generation layers."
 
 [subagents.dashboard_site]
 purpose = "Own Streamlit dashboard and public site UX work."

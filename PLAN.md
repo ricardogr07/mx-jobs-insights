@@ -190,10 +190,62 @@
 - Commit 8: first ingest/curate smoke path
 ## Phase 2: Analytics and Report Generation
 
-- Build weekly and monthly KPI pipelines from the same curated model.
-- Generate Markdown and HTML reports from shared metric payloads.
-- Add bilingual rendering.
-- Add OpenAI narrative generation from aggregated metrics only.
+### Step 2.1: Reporting contract and closed-period model
+
+- Activate the `report` CLI surface over curated DuckDB or Parquet inputs.
+- Add runtime inputs for `--cadence {weekly,monthly}`, `--as-of`, `--locale {en,es,all}`, `--curated-root`, `--output-root`, and `--dry-run`.
+- Resolve closed reporting periods from `observed_at`: weekly uses the latest completed ISO week, monthly uses the latest completed calendar month.
+
+### Step 2.2: Aggregate metric payloads
+
+- Read curated data into one shared report payload used by renderers and AI narration.
+- Build the MVP KPI set from the current canonical model: observation counts, distinct jobs, city, remote type, seniority, employment type, industry, English requirement, experience buckets, tech stack terms, and company rankings.
+- Keep the report layer source-agnostic once the curated dataset has been loaded.
+
+### Step 2.3: Publication boundary and public CSV
+
+- Add an explicit publication filter for row-level public artifacts.
+- Generate one public CSV row per distinct job in the selected period, using the latest observation in that period plus the latest entity fields.
+- Derive `public_job_key` from a deterministic salted hash and fail closed if the salt is missing.
+- Exclude company, URL, description text, raw `JobID`, and raw OpenAI payloads from the public row-level export.
+
+### Step 2.4: Bilingual report renderers
+
+- Render English and Spanish Markdown from the same metric payload.
+- Render standalone HTML snapshots from the same metric payload.
+- Keep locale rendering separate from metric computation so the numeric outputs stay identical across locales.
+
+### Step 2.5: OpenAI narrative generation
+
+- Build the narrative input contract from aggregated metrics only.
+- Use the OpenAI Responses API with structured JSON output for report narration.
+- Require `OPENAI_API_KEY`, `MX_JOBS_OPENAI_MODEL`, and `MX_JOBS_PUBLIC_KEY_SALT` for non-dry-run report generation; missing config fails closed.
+- Keep raw prompt/response payloads out of the persisted report artifacts.
+
+### Step 2.6: End-to-end report write path
+
+- Make `report` the first non-dry-run Phase 2 command.
+- Each run writes a period artifact directory with `metrics.json`, bilingual Markdown and HTML, `public_jobs.csv`, and `run_summary.json`.
+- The run summary should include cadence, period label, locale coverage, output paths, record counts, and narration status.
+
+### Step 2.7: Reproducible fixtures, tests, and docs
+
+- Reuse the Phase 1 checked-in upstream workspace fixtures to drive deterministic report tests.
+- Add report-specific tests for period resolution, aggregation, publication filtering, renderers, and CLI smoke paths.
+- Add a Phase 2 usage doc and keep the command catalog aligned as the backend surface lands.
+
+### Step 2.8: Review boundary
+
+- Phase 2 closes once weekly and monthly report paths pass locally with bilingual outputs, OpenAI narration, and public CSV policy checks.
+- Dashboard/site/automation work stays out of Phase 2.
+
+## Phase-2 Commit Boundaries
+- Commit 1: Phase-2 plan/docs and report command catalog
+- Commit 2: report CLI contract and reporting config/models
+- Commit 3: closed-period resolution and aggregate KPI readers/builders
+- Commit 4: public CSV projection and bilingual renderers
+- Commit 5: OpenAI narration and end-to-end report pipeline
+- Commit 6: report tests and Phase-2 usage docs
 
 ## Phase 3: Dashboard and Public Site
 
@@ -222,16 +274,23 @@
   - `report`
   - `site`
   - `pipeline`
-- Planned runtime inputs:
-  - source repo/branch config
-  - cadence config (`weekly`, `monthly`, `manual`)
-  - locale config (`en`, `es`)
-  - OpenAI config for narrative generation
+- Phase 2 `report` inputs:
+  - `--cadence {weekly,monthly}`
+  - `--as-of YYYY-MM-DD`
+  - `--locale {en,es,all}`
+  - `--curated-root`
+  - `--output-root`
+  - `--dry-run`
+- Phase 2 runtime environment:
+  - required for non-dry-run: `OPENAI_API_KEY`, `MX_JOBS_OPENAI_MODEL`, `MX_JOBS_PUBLIC_KEY_SALT`
+  - optional override: `MX_JOBS_OPENAI_BASE_URL`
 - Planned durable outputs:
   - curated DuckDB/Parquet
-  - Markdown reports
-  - HTML report snapshots
-  - public de-identified CSV downloads
+  - `metrics.json`
+  - bilingual Markdown reports
+  - bilingual HTML report snapshots
+  - de-identified `public_jobs.csv`
+  - `run_summary.json`
   - GitHub Pages site assets
 
 ## Subagent Plan
@@ -271,9 +330,12 @@
     - CSV is chosen when SQLite is absent
     - failure is explicit when neither source exists
 - Phase 2:
-  - KPI tests
+  - closed-period resolution tests
+  - aggregate KPI tests
+  - public CSV policy tests
   - Markdown/HTML snapshot tests
   - AI prompt/input shaping tests
+  - CLI smoke checks for `report --dry-run` and non-dry-run report writes
 - Phase 3:
   - Streamlit helper tests
   - static site generation tests
@@ -289,4 +351,6 @@
 - Local development uses a configurable local upstream path first; managed git-sync automation is deferred.
 - DuckDB is the curated source of truth; Parquet is a sidecar/export format.
 - CLI shells for `ingest` and `curate` land in Phase 1 even before the full analytics/report stack exists.
-- Public filtering, dashboard logic, report rendering, and GitHub automation remain out of scope for Phase 1.
+- Public filtering, dashboard logic, and GitHub automation remain out of scope for Phase 1.
+- Phase 2 report generation reads curated DuckDB/Parquet outputs, resolves closed periods from `observed_at`, and fails closed if required OpenAI/public-key environment variables are missing.
+
