@@ -1,0 +1,44 @@
+requires = ["tox>=4.21.2"]
+env_list = ["lint", "docs", "build", "preflight"]
+skip_missing_interpreters = true
+
+[env_run_base]
+package = "wheel"
+
+[env.lint]
+deps = ["ruff>=0.6.9"]
+commands = [
+  ["ruff", "check", "."],
+  ["ruff", "format", "--check", "."],
+]
+
+[env.docs]
+deps = [
+  "mkdocs>=1.6.1",
+  "mkdocs-material>=9.5.34",
+]
+commands = [["mkdocs", "build", "--strict"]]
+
+[env.build]
+deps = [
+  "build>=1.2.2",
+  "setuptools>=69",
+  "wheel>=0.45",
+]
+commands = [["python", "-m", "build", "--no-isolation"]]
+
+[env.preflight]
+deps = [
+  "build>=1.2.2",
+  "mkdocs>=1.6.1",
+  "mkdocs-material>=9.5.34",
+  "ruff>=0.6.9",
+  "setuptools>=69",
+  "wheel>=0.45",
+]
+commands = [
+  ["ruff", "check", "."],
+  ["ruff", "format", "--check", "."],
+  ["mkdocs", "build", "--strict"],
+  ["python", "-m", "build", "--no-isolation"],
+]
