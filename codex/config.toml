@@ -1,6 +1,6 @@
 [project]
 name = "mx-jobs-insights"
-shell = "powershell"
+shell = "cmd"
 platform = "windows"
 python_floor = "3.11"
 docs_root = "docs"
@@ -10,6 +10,8 @@ package_namespace = "mexico_linkedin_jobs_portfolio"
 review_before_commit = true
 no_commit_without_user_approval = true
 prefer_parallel_subagents = true
+reuse_existing_subagents = true
+close_idle_subagents = true
 prefer_primary_sources = true
 no_destructive_git = true
 no_secrets_in_repo = true
@@ -39,7 +41,7 @@ status = "ready"
 [commands.test]
 command = "python -m pytest -q"
 purpose = "Run the default offline test suite once tests are added."
-status = "planned"
+status = "ready"
 
 [commands.preflight]
 command = "python -m tox -e preflight"
@@ -54,6 +56,36 @@ status = "ready"
 [commands.build]
 command = "python -m build --no-isolation"
 purpose = "Build the package from the current working tree."
+status = "ready"
+
+[commands.workspace_validate]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main ingest --source auto --dry-run --upstream-root ../LinkedInWebScraper"
+purpose = "Validate the planned sibling upstream workspace shape and source resolution contract without mutating the source repo."
+status = "ready"
+
+[commands.ingest_dry_run_sqlite]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main ingest --source sqlite --dry-run"
+purpose = "Run the planned SQLite ingestion shell in dry-run mode once the Phase-1 CLI exists."
+status = "ready"
+
+[commands.ingest_dry_run_csv]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main ingest --source csv --dry-run"
+purpose = "Run the planned CSV ingestion shell in dry-run mode once the Phase-1 CLI exists."
+status = "ready"
+
+[commands.curate_dry_run_auto]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main curate --source auto --dry-run"
+purpose = "Run the planned canonical curation shell in auto-source dry-run mode once Phase 1 lands."
+status = "ready"
+
+[commands.curate_write_auto]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main curate --source auto"
+purpose = "Run the first non-dry-run curated write path to persist DuckDB state and Parquet sidecars."
+status = "ready"
+
+[commands.fixtures_regen]
+command = "python scripts/make_sample_data.py"
+purpose = "Regenerate the checked-in Phase-1 sample fixtures under tests/data/upstream_workspace from a local upstream workspace."
 status = "ready"
 
 [integrations.openai_docs]
@@ -96,9 +128,34 @@ write_scope = "docs/, codex/, AGENTS.md"
 use_when = "Updating docs, internal guidance, or enablement material."
 
 [subagents.data_contracts]
-purpose = "Own source ingestion contracts, schema mapping notes, and fixture planning."
-write_scope = "source adapters, schema docs, sample fixtures"
-use_when = "Defining or revising ingestion from the LinkedInWebScraper data branch."
+purpose = "Own durable ingestion-policy docs, source-field contracts, and schema decisions after the workspace and adapter seams are established."
+write_scope = "docs/development, docs/codex, PLAN.md"
+use_when = "Use for source-contract policy updates and schema-decision documentation, not for adapter implementation."
+
+[subagents.source_sync_contracts]
+purpose = "Own the upstream workspace contract, source-mode seams, and local data-branch path validation."
+write_scope = "src/mexico_linkedin_jobs_portfolio/config, src/mexico_linkedin_jobs_portfolio/sources, tests"
+use_when = "Use for workspace configuration, local upstream path discovery, and source adapter contract planning."
+
+[subagents.sqlite_source_adapter]
+purpose = "Own SQLite reader scaffolding, schema mapping, and SQLite-specific ingestion tests."
+write_scope = "src/mexico_linkedin_jobs_portfolio/sources, src/mexico_linkedin_jobs_portfolio/models, tests"
+use_when = "Use when implementing or validating the SQLite ingestion path."
+
+[subagents.csv_source_adapter]
+purpose = "Own CSV reader scaffolding, dated export reconstruction, and CSV-specific ingestion tests."
+write_scope = "src/mexico_linkedin_jobs_portfolio/sources, src/mexico_linkedin_jobs_portfolio/models, tests"
+use_when = "Use when implementing or validating the CSV ingestion path."
+
+[subagents.canonical_curation]
+purpose = "Own canonical analytics records, curated DuckDB writes, Parquet sidecars, and curation summaries."
+write_scope = "src/mexico_linkedin_jobs_portfolio/curation, src/mexico_linkedin_jobs_portfolio/models, tests"
+use_when = "Use when defining the canonical model or persisting curated outputs."
+
+[subagents.fixtures_validation]
+purpose = "Own deterministic source fixtures, regeneration helpers, equivalence checks, and ingest smoke tests."
+write_scope = "tests, scripts, docs/development"
+use_when = "Use when building sample artifacts or validating SQLite/CSV parity and smoke paths."
 
 [subagents.analytics_reports]
 purpose = "Own KPI definitions, report templates, and narrative payload design."
@@ -141,3 +198,4 @@ target_responsibilities = [
   "safe subagent work partitioning",
   "docs and automation alignment by phase",
 ]
+

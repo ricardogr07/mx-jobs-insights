@@ -7,6 +7,8 @@ Use subagents to parallelize well-scoped work, not to outsource integration deci
 - Every subagent must have an explicit write scope before it starts.
 - Subagents must not revert or overwrite changes from other agents.
 - Prefer delegation for sidecar work that can run in parallel without blocking the next local step.
+- Reuse an existing relevant subagent thread before spawning a new one for the same domain.
+- Close idle agents after their scoped task is done so the active agent set stays intentional.
 - Keep final integration local when the work is tightly coupled or likely to trigger follow-up edits.
 
 ## Explorer vs Worker
@@ -38,9 +40,34 @@ Use subagents to parallelize well-scoped work, not to outsource integration deci
 - Use when: documenting workflow rules, commands, or developer guidance.
 
 ### `data_contracts`
-- Purpose: own source ingestion contracts, schema mapping notes, and sample fixture planning.
-- Write scope: ingestion modules, schema docs, fixture definitions.
-- Use when: planning or implementing the LinkedInWebScraper data-branch contract.
+- Purpose: own durable ingestion-policy docs, source-field contracts, and schema decisions after the workspace and adapter seams are established.
+- Write scope: `docs/development/`, `docs/codex/`, and `PLAN.md`.
+- Use when: documenting or revising ingestion policy and schema decisions, not adapter implementation.
+
+### `source_sync_contracts`
+- Purpose: own upstream workspace config, local source-path validation, and source-mode interface seams.
+- Write scope: workspace provider code, source contract docs, and source-mode config helpers.
+- Use when: adding or revising how this repo discovers and validates the upstream local data workspace.
+
+### `sqlite_source_adapter`
+- Purpose: own SQLite reader shape, schema mapping, and SQLite-focused ingestion tests.
+- Write scope: SQLite source adapters, SQLite fixture notes, and SQLite-focused tests.
+- Use when: implementing or refining the SQLite ingestion path.
+
+### `csv_source_adapter`
+- Purpose: own CSV reader shape, dated-folder reconstruction, and CSV-focused ingestion tests.
+- Write scope: CSV source adapters, CSV fixture notes, and CSV-focused tests.
+- Use when: implementing or refining the CSV ingestion path.
+
+### `canonical_curation`
+- Purpose: own canonical models, DuckDB writes, Parquet sidecars, and curation summaries.
+- Write scope: canonical models, curation modules, and storage-facing curation tests.
+- Use when: normalizing source records into the curated analytics model.
+
+### `fixtures_validation`
+- Purpose: own sample artifacts, regeneration helpers, equivalence tests, and ingest smoke tests.
+- Write scope: `tests/`, fixture generation scripts, and sample data assets.
+- Use when: adding deterministic Phase-1 fixtures or validating SQLite/CSV parity.
 
 ### `analytics_reports`
 - Purpose: own KPI definitions, report templates, and narrative payload design.
@@ -56,6 +83,12 @@ Use subagents to parallelize well-scoped work, not to outsource integration deci
 - Purpose: own workflows, deployment contracts, and publication automation.
 - Write scope: `.github/`, release docs, runtime docs.
 - Use when: adding CI/CD, schedules, Pages deploys, or future release automation.
+
+## Phase-1 Specialization Rule
+- Phase 1 uses the specialized roles above so workspace, adapter, curation, and fixture work can run in parallel without overlapping the durable contract-doc ownership of `data_contracts`.
+- SQLite and CSV workers may proceed in parallel only after the shared interfaces and workspace contract are stable.
+- Canonical curation work should stay behind a stable source adapter boundary so it does not have to reason about raw source-specific shapes.
+- Fixture and validation work should run alongside adapter implementation, not after all ingestion code is finished.
 
 ## Integration Responsibility
 - Main agent validates the final step state before asking for review.

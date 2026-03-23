@@ -4,7 +4,7 @@
 
 - Build this as a separate public repo in `C:\git\mx-jobs-insights`, consuming `LinkedInWebScraper` `data` branch inputs and turning them into a bilingual Mexico-focused analytics portfolio.
 - Work phase by phase, one reviewed step at a time. No git commit happens until explicitly approved. Each approved step becomes a small commit before moving on.
-- Phase 0 starts with repo bootstrap only: create `PLAN.md`, create the initial folder structure, add `AGENTS.md`, and add the Codex/dev docs scaffold so future phases have clear rules for subagents, skills, and workflow.
+- Phase 0 is complete. Phase 1 focuses on ingestion and normalization, with explicit reviewed substeps so source adapters, canonical models, fixtures, and subagent specialization can evolve without overlapping ownership.
 
 ## Working Rules
 
@@ -17,8 +17,25 @@
   5. move to the next step
 - No commit, tag, or release action happens without explicit approval.
 - Main agent owns integration and final review. Subagents are used in parallel for bounded tasks with disjoint ownership.
+- Reuse an existing relevant subagent thread when the work stays in the same domain, and close idle agents once their scoped task is complete.
 - `AGENTS.md` points to the durable docs under `docs/` and `codex/`; it does not become a second architecture spec.
 - Production logic lives in `src/` and `scripts/`. Notebooks are exploratory only.
+
+## Current Status
+
+- Phase 0 is already established:
+  - root scaffold and package namespace exist
+  - `PLAN.md`, `AGENTS.md`, `codex/`, and `docs/codex/` exist
+  - `.gitignore`, `pyproject.toml`, `tox.toml`, and `mkdocs.yml` exist
+  - source data contract, public data policy, and presentation policy are documented
+- The current upstream data contract has been verified:
+  - upstream repo: `ricardogr07/LinkedInWebScraper`
+  - source branch: `data`
+  - inputs present today:
+    - `state/linkedin_jobs.sqlite`
+    - `exports/latest/*.csv`
+    - `exports/YYYY-MM-DD/*.csv`
+  - current CSV exports already include enriched fields such as `ShortDescription`, `TechStack`, `YoE`, `MinLevelStudies`, `English`, and OpenAI metadata
 
 ## Phase 0: Bootstrap and Repo Guardrails
 
@@ -53,7 +70,7 @@
 
 ### Step 0.3: Repo hygiene baseline
 
-- Update .gitignore for this repo's actual runtime outputs:
+- Update `.gitignore` for this repo's actual runtime outputs:
   - `artifacts/`
   - local DuckDB/SQLite files
   - generated reports/downloads if produced outside tracked docs/assets areas
@@ -79,37 +96,118 @@
   - Streamlit local-first app
   - OpenAI required for published narrative reports in v1
 
-## Phases 1-5
+## Phase 1: Ingestion and Normalization
+### Step 1.1: Phase-1 planning and agent-role expansion
+- Update `PLAN.md` so Phase 1 is split into reviewed substeps, just like Phase 0.
+- Extend `codex/config.toml` and `docs/codex/subagents.md` with Phase-1-specific roles:
+  - `source_sync_contracts`
+  - `sqlite_source_adapter`
+  - `csv_source_adapter`
+  - `canonical_curation`
+  - `fixtures_validation`
+- Add planned command references for Phase 1 shells in `docs/codex/tools-and-commands.md`, including a standalone workspace-validation shell for step 1.3.
 
-### Phase 1: Ingestion and Normalization
+### Step 1.2: Ingestion contract shell
+- Add the package structure needed for Phase 1:
+  - `src/mexico_linkedin_jobs_portfolio/config/`
+  - `src/mexico_linkedin_jobs_portfolio/sources/`
+  - `src/mexico_linkedin_jobs_portfolio/curation/`
+  - `src/mexico_linkedin_jobs_portfolio/models/`
+  - `src/mexico_linkedin_jobs_portfolio/interfaces/cli/`
+- Define the first shared types and interfaces:
+  - `SourceMode = auto | sqlite | csv`
+  - `UpstreamWorkspaceConfig`
+  - `SourceAdapter` protocol
+  - `CanonicalObservationRecord`
+  - `CanonicalEntityRecord`
+  - `IngestionRunSummary`
+- Add a thin CLI shell for `ingest` and `curate` with `--dry-run`, but no full business logic yet.
 
-- Build source adapters for:
-  - SQLite from `state/linkedin_jobs.sqlite`
-  - CSV from `exports/latest` and dated `exports/YYYY-MM-DD`
-- Normalize both into one canonical analytics model.
-- Persist curated outputs in DuckDB and Parquet.
-- Add reproducible sample fixtures for tests.
+### Step 1.3: Local upstream workspace contract
+- Implement a local-path-first workspace provider.
+- Default upstream local path: sibling repo `../LinkedInWebScraper`.
+- Validate the presence of the upstream `data` branch workspace shape without mutating the upstream repo.
+- Defer managed git fetch/checkout automation to a later step or later phase; keep an interface seam so it can be added without changing adapters.
 
-### Phase 2: Analytics and Report Generation
+### Step 1.4: SQLite adapter shell and first working path
+- Add a `SQLiteSourceAdapter` that reads:
+  - `scrape_runs`
+  - `jobs`
+  - `job_snapshots`
+  - `job_enrichments`
+- Make SQLite the first fully working path for source normalization because `auto` mode prefers it when both sources exist.
+- Normalize SQLite rows into the canonical observation/entity model without exposing downstream code to raw table shapes.
+
+### Step 1.5: CSV adapter shell and parity path
+- Add a `CsvSourceAdapter` that reads:
+  - `exports/latest/*.csv`
+  - `exports/YYYY-MM-DD/*.csv`
+- Enforce the minimum CSV contract already documented:
+  - `Title`, `Location`, `DatePosted`, `JobID`
+- Ingest optional enriched columns when present.
+- Reconstruct observation dates from dated folder context when available.
+- Normalize CSV into the exact same canonical model used by SQLite.
+
+### Step 1.6: Canonical curated model and storage shell
+- Make DuckDB the authoritative curated store.
+- Emit Parquet sidecars for downstream convenience.
+- Phase-1 canonical model should include:
+  - `source_runs`
+  - `job_observations`
+  - `job_entities`
+- `job_observations` is the main fact table at observation grain.
+- `job_entities` is the latest-known per-job projection.
+- Public filtering is not part of Phase 1 storage; richer private fields may remain in the curated model for now.
+
+### Step 1.7: Sample fixtures and reproducibility
+- Add small checked-in sample artifacts for both source modes:
+  - one SQLite fixture slice
+  - one `exports/latest` CSV slice
+  - one dated CSV slice
+- Add a helper script for regenerating tiny fixtures from local upstream data, but keep the checked-in fixtures deterministic and small enough for tests.
+- Keep fixtures under a dedicated test-data area, separate from future runtime artifacts.
+
+### Step 1.8: First end-to-end ingest smoke
+- Add a first working local path:
+  - `ingest --source sqlite --dry-run`
+  - `ingest --source csv --dry-run`
+  - `curate --source auto --dry-run`
+- Then add the first non-dry-run curated write path:
+  - read upstream source
+  - normalize to canonical model
+  - persist to DuckDB
+  - emit Parquet sidecars
+  - print a run summary
+
+## Phase-1 Commit Boundaries
+- Commit 1: Phase-1 plan/docs/subagent-role expansion
+- Commit 2: ingestion contract shell and package scaffolding
+- Commit 3: local upstream workspace provider
+- Commit 4: SQLite adapter first working path
+- Commit 5: CSV adapter parity path
+- Commit 6: canonical DuckDB + Parquet curated storage
+- Commit 7: fixtures and regeneration helper
+- Commit 8: first ingest/curate smoke path
+## Phase 2: Analytics and Report Generation
 
 - Build weekly and monthly KPI pipelines from the same curated model.
 - Generate Markdown and HTML reports from shared metric payloads.
 - Add bilingual rendering.
 - Add OpenAI narrative generation from aggregated metrics only.
 
-### Phase 3: Dashboard and Public Site
+## Phase 3: Dashboard and Public Site
 
 - Build the local-first Streamlit dashboard over curated DuckDB/Parquet data.
 - Build the MkDocs Material Pages site with bilingual overview pages, report archive pages, and downloadable public CSV/report artifacts.
 
-### Phase 4: Automation
+## Phase 4: Automation
 
 - Add GitHub Actions for weekly, monthly, and manual runs.
 - Pull the latest scraper `data` branch contents into the pipeline workspace.
 - Rebuild curated data, reports, downloads, and Pages output.
 - Add failure handling, concurrency control, and artifact retention.
 
-### Phase 5: Cloud Expansion
+## Phase 5: Cloud Expansion
 
 - Keep source, curation, analytics, report rendering, and publishing abstracted from deployment targets.
 - Prepare for later Cloud Run/GCS/BigQuery/Terraform expansion without changing core pipeline logic.
@@ -142,6 +240,11 @@
   - `repo_bootstrap`: scaffolding, packaging, config shell
   - `docs_devx`: `AGENTS.md`, `codex/`, `docs/codex/`, MkDocs nav
   - `data_contracts`: ingestion contracts, schema mapping, sample fixtures
+  - `source_sync_contracts`: upstream workspace config and local path validation
+  - `sqlite_source_adapter`: SQLite reader shape and SQLite-focused tests
+  - `csv_source_adapter`: CSV reader shape, folder-date reconstruction, and CSV-focused tests
+  - `canonical_curation`: canonical models, DuckDB writes, Parquet sidecars, and curation summaries
+  - `fixtures_validation`: sample artifacts, regeneration helpers, equivalence tests, and smoke tests
   - `analytics_reports`: KPIs, templates, narrative payloads
   - `dashboard_site`: Streamlit and Pages UX
   - `automation_release`: GitHub Actions and deployment contracts
@@ -154,8 +257,19 @@
   - docs build can see internal Codex pages
   - repo hygiene/ignore rules match planned outputs
 - Phase 1:
-  - ingestion adapter unit tests
-  - source equivalence tests between SQLite and CSV fixtures
+  - source mode resolution tests
+  - local workspace path validation tests
+  - SQLite schema mapping tests
+  - CSV minimum-field validation tests
+  - canonical record construction tests
+  - DuckDB write/read tests
+  - Parquet sidecar emission tests
+  - source equivalence tests between SQLite and CSV fixtures where the logical slice overlaps
+  - smoke checks for `ingest --source sqlite --dry-run`, `ingest --source csv --dry-run`, and `curate --source auto --dry-run`
+  - `auto` mode acceptance checks:
+    - SQLite is chosen when both sources exist
+    - CSV is chosen when SQLite is absent
+    - failure is explicit when neither source exists
 - Phase 2:
   - KPI tests
   - Markdown/HTML snapshot tests
@@ -171,7 +285,8 @@
 
 ## Assumptions and Defaults
 
-- This repo currently only contains `README.md`, `.gitignore`, `LICENSE`, and git metadata, so phase 0 can establish clean structure without migration work.
-- The first actual implementation step is phase 0 step 0.1: add `PLAN.md` and the initial folder structure.
-- `docs/codex/` and `codex/` are durable developer assets and should exist from the start.
-- Small commits and explicit approval checkpoints are part of the implementation process, not optional workflow guidance.
+- Phase 1 starts with both adapter shells scaffolded, but SQLite becomes the first fully working ingestion path.
+- Local development uses a configurable local upstream path first; managed git-sync automation is deferred.
+- DuckDB is the curated source of truth; Parquet is a sidecar/export format.
+- CLI shells for `ingest` and `curate` land in Phase 1 even before the full analytics/report stack exists.
+- Public filtering, dashboard logic, report rendering, and GitHub automation remain out of scope for Phase 1.
