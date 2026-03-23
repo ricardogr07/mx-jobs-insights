@@ -1,0 +1,19 @@
+site_name: mx-jobs-insights
+site_description: Bilingual Mexico jobs analytics portfolio powered by LinkedInWebScraper data.
+docs_dir: docs
+theme:
+  name: material
+nav:
+  - Overview: index.md
+  - Development:
+      - Source Data Contract: development/source-data-contract.md
+      - Public Data Policy: development/public-data-policy.md
+      - Presentation Policy: development/presentation-policy.md
+      - Codex:
+          - Overview: codex/index.md
+          - Subagents: codex/subagents.md
+          - Skills: codex/skills.md
+          - Tools and Commands: codex/tools-and-commands.md
+          - Integrations: codex/integrations.md
+plugins:
+  - search
