@@ -1,17 +1,28 @@
-"""Thin CLI shell for phase-1 ingestion and curation planning."""
+"""CLI entrypoints for Phase 1 ingestion/curation and Phase 2 report generation."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections.abc import Sequence
+from datetime import date
 from pathlib import Path
 from typing import cast
 
 from mexico_linkedin_jobs_portfolio.config import (
+    OPENAI_API_KEY_ENV,
+    OPENAI_BASE_URL_ENV,
+    OPENAI_MODEL_ENV,
+    PUBLIC_KEY_SALT_ENV,
+    REPORT_CADENCES,
+    REPORT_LOCALES,
     SOURCE_MODES,
     CuratedStorageConfig,
+    ReportCadence,
+    ReportConfig,
+    ReportLocale,
     SourceMode,
     UpstreamWorkspaceConfig,
 )
@@ -21,6 +32,7 @@ from mexico_linkedin_jobs_portfolio.curation import (
     build_curated_batch,
 )
 from mexico_linkedin_jobs_portfolio.models import IngestionRunSummary, WorkspaceValidationResult
+from mexico_linkedin_jobs_portfolio.reporting import ReportPipeline
 from mexico_linkedin_jobs_portfolio.sources import (
     CsvSourceAdapter,
     LocalUpstreamWorkspaceProvider,
@@ -50,7 +62,7 @@ def add_shared_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the phase-1 CLI parser for ingest and curate shell commands."""
+    """Build the current CLI parser for ingest, curate, and report."""
 
     parser = argparse.ArgumentParser(prog="mx-jobs-insights")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -64,6 +76,42 @@ def build_parser() -> argparse.ArgumentParser:
         "--curated-root",
         default=str(CuratedStorageConfig().root),
         help="Directory where curated DuckDB state and Parquet sidecars should be written.",
+    )
+
+    report_parser = subparsers.add_parser(
+        "report", help="Generate Phase 2 aggregate reports from curated data."
+    )
+    report_parser.add_argument(
+        "--cadence",
+        choices=REPORT_CADENCES,
+        required=True,
+        help="Closed reporting cadence to generate.",
+    )
+    report_parser.add_argument(
+        "--as-of",
+        dest="as_of_date",
+        help="Optional YYYY-MM-DD reference date used to resolve the latest completed period.",
+    )
+    report_parser.add_argument(
+        "--locale",
+        choices=REPORT_LOCALES,
+        default="all",
+        help="Locale scope for rendered report artifacts.",
+    )
+    report_parser.add_argument(
+        "--curated-root",
+        default=str(CuratedStorageConfig().root),
+        help="Directory containing the curated DuckDB database or Parquet sidecars.",
+    )
+    report_parser.add_argument(
+        "--output-root",
+        default="artifacts/reports",
+        help="Directory where generated report artifacts should be written.",
+    )
+    report_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Compute the report period and metrics without writing artifacts or calling OpenAI.",
     )
 
     return parser
@@ -83,6 +131,24 @@ def build_curated_config(args: argparse.Namespace) -> CuratedStorageConfig:
 
     curated_root = getattr(args, "curated_root", CuratedStorageConfig().root)
     return CuratedStorageConfig(root=Path(curated_root))
+
+
+def build_report_config(args: argparse.Namespace) -> ReportConfig:
+    """Translate parsed CLI arguments and environment into the Phase 2 report config."""
+
+    as_of_date = date.fromisoformat(args.as_of_date) if args.as_of_date else None
+    return ReportConfig(
+        cadence=cast(ReportCadence, args.cadence),
+        locale=cast(ReportLocale, args.locale),
+        as_of_date=as_of_date,
+        curated_root=Path(args.curated_root),
+        output_root=Path(args.output_root),
+        dry_run=bool(args.dry_run),
+        openai_api_key=os.environ.get(OPENAI_API_KEY_ENV),
+        openai_model=os.environ.get(OPENAI_MODEL_ENV),
+        public_key_salt=os.environ.get(PUBLIC_KEY_SALT_ENV),
+        openai_base_url=os.environ.get(OPENAI_BASE_URL_ENV, "https://api.openai.com/v1"),
+    )
 
 
 def load_adapter_records(
@@ -233,11 +299,32 @@ def execute_curate_write(
     ), 0
 
 
+def execute_report(args: argparse.Namespace) -> tuple[dict[str, object], int]:
+    """Execute the Phase 2 report path and return the CLI payload plus exit code."""
+
+    report_config = build_report_config(args)
+    summary, exit_code = ReportPipeline().run(report_config)
+    payload = summary.to_display_dict()
+    payload["report_request"] = report_config.to_display_dict()
+    payload["curated_storage"] = report_config.curated_storage.to_display_dict()
+    payload["resolved_period"] = {
+        "period_id": summary.period_id,
+        "period_start": summary.period_start.isoformat() if summary.period_start else None,
+        "period_end": summary.period_end.isoformat() if summary.period_end else None,
+    }
+    return payload, exit_code
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the current phase-1 CLI shell."""
+    """Run the current Phase 1 and Phase 2 CLI commands."""
 
     parser = build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
+
+    if args.command == "report":
+        payload, exit_code = execute_report(args)
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return exit_code
 
     if args.command == "ingest" and not args.dry_run:
         print(
