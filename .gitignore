@@ -142,6 +142,7 @@ artifacts/
 *.sqlite3-journal
 *.db
 *.parquet
+!tests/data/upstream_workspace/state/*.sqlite
 
 # Local generated report/download directories outside tracked docs
 reports-output/

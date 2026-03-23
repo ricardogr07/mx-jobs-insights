@@ -1,0 +1,2 @@
+Title,Company,Location,Remote,SeniorityLevel,EmploymentType,Industries,DatePosted,Description,Url,JobID,ShortDescription,TechStack,YoE,English,MinYoE
+ML Engineer,Beta Labs,"Guadalajara, Jalisco, Mexico",Hybrid,Mid level,Contract,Consulting,2026-03-21,Support production ML systems.,https://example.com/jobs/2,job-2,Support production deployments.,"Python, Airflow",2 years,No,2

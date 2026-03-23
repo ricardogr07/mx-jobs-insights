@@ -1,0 +1,2 @@
+Title,Company,Location,Remote,SeniorityLevel,EmploymentType,Industries,DatePosted,Description,Url,JobID,ShortDescription,TechStack,YoE,English,MinYoE
+Senior Data Scientist,Acme Analytics,"Monterrey, Nuevo Leon, Mexico",Remote,Senior level,Full-time,Technology,2026-03-20,Build forecasting models for retail demand.,https://example.com/jobs/1,job-1,Lead forecasting work across ML projects.,"Python, SQL, dbt",3+ years,Yes,3
