@@ -7,6 +7,7 @@ This documentation tree is being bootstrapped in phase 0.
 - [Public Data Policy](development/public-data-policy.md)
 - [Presentation Policy](development/presentation-policy.md)
 - [Phase 1 Ingest And Curate Usage](development/phase-1-ingest-curate-usage.md)
+- [Phase 2 Report Usage](development/phase-2-report-usage.md)
 - [Codex Enablement](codex/index.md)
 - [Subagents](codex/subagents.md)
 - [Skills](codex/skills.md)
