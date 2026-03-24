@@ -20,6 +20,7 @@ from mexico_linkedin_jobs_portfolio.models import (
 from mexico_linkedin_jobs_portfolio.reporting.openai_narration import (
     NarrationClient,
     OpenAINarrationClient,
+    build_mock_narrative,
 )
 from mexico_linkedin_jobs_portfolio.reporting.publication import (
     build_public_job_records,
@@ -81,6 +82,32 @@ class ReportPipeline:
                 ),
                 1,
             )
+
+        if metrics_result.metrics.job_count == 0:
+            narrative = build_mock_narrative(
+                metrics_result.metrics,
+                config.openai_model or "empty-period-local",
+            )
+            public_rows = build_public_job_records(
+                metrics_result.latest_jobs, config.public_key_salt or ""
+            )
+            artifacts = self._write_artifacts(config, metrics_result.metrics, narrative, public_rows)
+            notes.append("Skipped OpenAI narration because the selected period contains no jobs.")
+            notes.append(f"Wrote report artifacts to {artifacts.artifact_dir}.")
+            summary = self._build_summary(
+                config,
+                metrics_result.metrics,
+                public_row_count=len(public_rows),
+                narration_status="skipped_empty_period",
+                status="report_written",
+                notes=tuple(notes),
+                artifacts=artifacts,
+            )
+            artifacts.run_summary_path.write_text(
+                json.dumps(summary.to_display_dict(), indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+            return summary, 0
 
         narration_client = self.narration_client or OpenAINarrationClient(
             api_key=config.openai_api_key or "",

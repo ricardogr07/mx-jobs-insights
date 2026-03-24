@@ -227,6 +227,62 @@ def test_report_pipeline_dry_run_handles_empty_period(tmp_path: Path) -> None:
     assert summary.job_count == 0
 
 
+def test_report_pipeline_write_handles_empty_period_without_openai(tmp_path: Path) -> None:
+    curated_root = write_curated_fixture(tmp_path)
+
+    summary, exit_code = ReportPipeline().run(
+        ReportConfig(
+            cadence="monthly",
+            as_of_date=date(2026, 3, 15),
+            curated_root=curated_root,
+            output_root=tmp_path / "reports-empty",
+            dry_run=False,
+            openai_api_key="test-key",
+            openai_model="gpt-5.4-nano",
+            public_key_salt="test-salt",
+        )
+    )
+
+    assert exit_code == 0
+    assert summary.status == "report_written"
+    assert summary.narration_status == "skipped_empty_period"
+    assert summary.period_id == "2026-02"
+    assert summary.job_count == 0
+    assert summary.public_row_count == 0
+    assert summary.metrics_path is not None and summary.metrics_path.is_file()
+    assert summary.public_csv_path is not None and summary.public_csv_path.is_file()
+    assert summary.run_summary_path is not None and summary.run_summary_path.is_file()
+    with summary.public_csv_path.open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert rows == []
+    assert "Skipped OpenAI narration because the selected period contains no jobs." in "\n".join(summary.notes)
+
+
+def test_report_pipeline_writes_artifacts_with_mock_openai_base_url(tmp_path: Path) -> None:
+    curated_root = write_curated_fixture(tmp_path)
+
+    summary, exit_code = ReportPipeline().run(
+        ReportConfig(
+            cadence="monthly",
+            as_of_date=date(2026, 4, 1),
+            curated_root=curated_root,
+            output_root=tmp_path / "reports-mock",
+            dry_run=False,
+            openai_api_key="test-key",
+            openai_model="gpt-5.4-nano",
+            public_key_salt="test-salt",
+            openai_base_url="mock://responses",
+        )
+    )
+
+    assert exit_code == 0
+    assert summary.status == "report_written"
+    assert summary.narration_status == "generated"
+    assert summary.metrics_path is not None and summary.metrics_path.is_file()
+    assert summary.markdown_paths is not None
+    markdown_text = summary.markdown_paths["en"].read_text(encoding="utf-8")
+    assert "distinct jobs were observed during" in markdown_text
+
 def test_report_pipeline_fails_closed_when_runtime_env_is_missing(tmp_path: Path) -> None:
     curated_root = write_curated_fixture(tmp_path)
 
@@ -369,3 +425,4 @@ def test_cli_report_monthly_write_outputs_artifacts(capsys, tmp_path: Path, monk
     assert Path(payload["public_csv_path"]).is_file()
     assert Path(payload["markdown_paths"]["en"]).is_file()
     assert Path(payload["html_paths"]["es"]).is_file()
+

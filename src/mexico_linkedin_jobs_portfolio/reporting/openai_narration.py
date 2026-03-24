@@ -72,6 +72,9 @@ class OpenAINarrationClient:
     base_url: str = "https://api.openai.com/v1"
 
     def generate_bilingual_narrative(self, metrics: ReportMetrics) -> GeneratedNarrative:
+        if self.base_url.startswith("mock://"):
+            return build_mock_narrative(metrics, self.model)
+
         body = build_narration_request_body(metrics, self.model)
         response_payload = self._post_json(body)
         narrative = _extract_narrative_payload(response_payload)
@@ -102,6 +105,8 @@ class OpenAINarrationClient:
             raise RuntimeError(f"OpenAI Responses API request failed: {detail}") from exc
         except error.URLError as exc:
             raise RuntimeError(f"OpenAI Responses API request failed: {exc.reason}") from exc
+        except OSError as exc:
+            raise RuntimeError(f"OpenAI Responses API request failed: {exc}") from exc
 
 
 def build_narration_request_body(metrics: ReportMetrics, model: str) -> dict[str, object]:
@@ -125,6 +130,77 @@ def build_narration_request_body(metrics: ReportMetrics, model: str) -> dict[str
             }
         },
     }
+
+
+def build_mock_narrative(metrics: ReportMetrics, model: str) -> GeneratedNarrative:
+    """Return a deterministic local narrative for offline validation."""
+
+    if metrics.job_count == 0:
+        return GeneratedNarrative(
+            model=model,
+            en_headline=f"No jobs were observed for {metrics.period.label}.",
+            en_bullets=(
+                "No curated job observations fell inside this closed period.",
+                "The public CSV is empty for this report window.",
+                "A later closed period with observations will repopulate the metrics.",
+            ),
+            es_headline=f"No se observaron vacantes en {metrics.period.label}.",
+            es_bullets=(
+                "No hubo observaciones curadas dentro de este periodo cerrado.",
+                "El CSV publico queda vacio para esta ventana del reporte.",
+                "Un periodo cerrado posterior con observaciones volvera a poblar las metricas.",
+            ),
+        )
+
+    top_city = _top_label(metrics.city_counts)
+    top_remote = _top_label(metrics.remote_type_counts)
+    top_tech = _top_label(metrics.tech_stack_counts)
+
+    return GeneratedNarrative(
+        model=model,
+        en_headline=(
+            f"{metrics.job_count} distinct jobs were observed during {metrics.period.label}."
+        ),
+        en_bullets=(
+            f"{metrics.observation_count} observations were captured across {metrics.source_run_count} source runs.",
+            _format_insight(
+                top_city,
+                "{label} led the visible city mix.",
+                "No city concentration signal was available in the aggregate metrics.",
+            ),
+            _format_insight(
+                top_tech or top_remote,
+                "{label} stood out in the aggregate breakdown.",
+                "No standout tech-stack or remote-work label was available in the aggregate metrics.",
+            ),
+        ),
+        es_headline=(
+            f"Se observaron {metrics.job_count} vacantes distintas durante {metrics.period.label}."
+        ),
+        es_bullets=(
+            f"Se capturaron {metrics.observation_count} observaciones en {metrics.source_run_count} corridas de origen.",
+            _format_insight(
+                top_city,
+                "{label} lidero la mezcla visible por ciudad.",
+                "No hubo una senal clara de concentracion por ciudad en las metricas agregadas.",
+            ),
+            _format_insight(
+                top_tech or top_remote,
+                "{label} destaco en el desglose agregado.",
+                "No hubo una etiqueta destacada de tecnologia o modalidad remota en las metricas agregadas.",
+            ),
+        ),
+    )
+
+
+def _top_label(counts) -> str | None:
+    return counts[0].label if counts else None
+
+
+def _format_insight(label: str | None, template: str, empty_message: str) -> str:
+    if not label:
+        return empty_message
+    return template.format(label=label)
 
 
 def _extract_narrative_payload(response_payload: dict[str, object]) -> dict[str, object]:
