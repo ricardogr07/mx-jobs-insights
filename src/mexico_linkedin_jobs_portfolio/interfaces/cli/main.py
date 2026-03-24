@@ -1,4 +1,4 @@
-"""CLI entrypoints for Phase 1 ingestion/curation and Phase 2 report generation."""
+"""CLI entrypoints for Phase 1 ingestion/curation, Phase 2 reports, and Phase 3 site generation."""
 
 from __future__ import annotations
 
@@ -18,11 +18,13 @@ from mexico_linkedin_jobs_portfolio.config import (
     PUBLIC_KEY_SALT_ENV,
     REPORT_CADENCES,
     REPORT_LOCALES,
+    SITE_LOCALES,
     SOURCE_MODES,
     CuratedStorageConfig,
     ReportCadence,
     ReportConfig,
     ReportLocale,
+    SiteConfig,
     SourceMode,
     UpstreamWorkspaceConfig,
 )
@@ -32,6 +34,7 @@ from mexico_linkedin_jobs_portfolio.curation import (
     build_curated_batch,
 )
 from mexico_linkedin_jobs_portfolio.models import IngestionRunSummary, WorkspaceValidationResult
+from mexico_linkedin_jobs_portfolio.presentation import SitePipeline
 from mexico_linkedin_jobs_portfolio.reporting import ReportPipeline
 from mexico_linkedin_jobs_portfolio.sources import (
     CsvSourceAdapter,
@@ -41,7 +44,7 @@ from mexico_linkedin_jobs_portfolio.sources import (
 
 
 def add_shared_arguments(parser: argparse.ArgumentParser) -> None:
-    """Attach the common phase-1 shell arguments used by ingest and curate."""
+    """Attach the common Phase 1 shell arguments used by ingest and curate."""
 
     parser.add_argument(
         "--source",
@@ -62,7 +65,7 @@ def add_shared_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the current CLI parser for ingest, curate, and report."""
+    """Build the current CLI parser for ingest, curate, report, and site."""
 
     parser = argparse.ArgumentParser(prog="mx-jobs-insights")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -114,6 +117,31 @@ def build_parser() -> argparse.ArgumentParser:
         help="Compute the report period and metrics without writing artifacts or calling OpenAI.",
     )
 
+    site_parser = subparsers.add_parser(
+        "site", help="Generate Phase 3 public MkDocs source from existing report artifacts."
+    )
+    site_parser.add_argument(
+        "--report-root",
+        default="artifacts/reports",
+        help="Directory containing completed Phase 2 report artifacts.",
+    )
+    site_parser.add_argument(
+        "--docs-root",
+        default="docs",
+        help="Directory where public MkDocs source pages should be generated.",
+    )
+    site_parser.add_argument(
+        "--locale",
+        choices=SITE_LOCALES,
+        default="all",
+        help="Locale scope for generated public pages and copied HTML snapshots.",
+    )
+    site_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Resolve the public site index without writing MkDocs source pages.",
+    )
+
     return parser
 
 
@@ -151,6 +179,17 @@ def build_report_config(args: argparse.Namespace) -> ReportConfig:
     )
 
 
+def build_site_config(args: argparse.Namespace) -> SiteConfig:
+    """Translate parsed CLI arguments into the Phase 3 site-generation config."""
+
+    return SiteConfig(
+        report_root=Path(args.report_root),
+        docs_root=Path(args.docs_root),
+        locale=cast(ReportLocale, args.locale),
+        dry_run=bool(args.dry_run),
+    )
+
+
 def load_adapter_records(
     workspace: UpstreamWorkspaceConfig,
     validation: WorkspaceValidationResult,
@@ -174,7 +213,7 @@ def build_run_summary(
     source_run_count: int = 0,
     write_result: CuratedWriteResult | None = None,
 ) -> IngestionRunSummary:
-    """Return a summary describing the current phase-1 command state."""
+    """Return a summary describing the current Phase 1 command state."""
 
     if dry_run:
         notes = [
@@ -279,7 +318,7 @@ def execute_curate_write(
     validation: WorkspaceValidationResult,
     curated_config: CuratedStorageConfig,
 ) -> tuple[IngestionRunSummary, int]:
-    """Execute the first non-dry-run curated write path for phase 1."""
+    """Execute the first non-dry-run curated write path for Phase 1."""
 
     if not validation.is_valid:
         return build_run_summary("curate", workspace, validation, dry_run=False), 1
@@ -315,14 +354,29 @@ def execute_report(args: argparse.Namespace) -> tuple[dict[str, object], int]:
     return payload, exit_code
 
 
+def execute_site(args: argparse.Namespace) -> tuple[dict[str, object], int]:
+    """Execute the Phase 3 site path and return the CLI payload plus exit code."""
+
+    site_config = build_site_config(args)
+    summary, exit_code = SitePipeline().run(site_config)
+    payload = summary.to_display_dict()
+    payload["site_request"] = site_config.to_display_dict()
+    return payload, exit_code
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the current Phase 1 and Phase 2 CLI commands."""
+    """Run the current Phase 1, Phase 2, and Phase 3 CLI commands."""
 
     parser = build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     if args.command == "report":
         payload, exit_code = execute_report(args)
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return exit_code
+
+    if args.command == "site":
+        payload, exit_code = execute_site(args)
         print(json.dumps(payload, indent=2, sort_keys=True))
         return exit_code
 

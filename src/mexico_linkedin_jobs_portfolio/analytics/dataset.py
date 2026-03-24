@@ -22,6 +22,8 @@ SELECT
     o.seniority_level,
     o.employment_type,
     e.company_name,
+    e.job_url,
+    e.description_text,
     e.industry,
     e.english_required,
     e.minimum_years_experience,
@@ -35,7 +37,7 @@ ORDER BY o.observed_at, o.job_id, COALESCE(o.source_run_id, '')
 
 @dataclass(frozen=True, slots=True)
 class JoinedObservationRecord:
-    """Joined observation/entity row used for Phase 2 metrics."""
+    """Joined observation/entity row used for Phase 2 metrics and Phase 3 views."""
 
     job_id: str
     observed_at: object
@@ -48,6 +50,8 @@ class JoinedObservationRecord:
     seniority_level: str | None
     employment_type: str | None
     company_name: str | None
+    job_url: str | None
+    description_text: str | None
     industry: str | None
     english_required: bool | None
     minimum_years_experience: float | None
@@ -119,10 +123,12 @@ class CuratedDatasetReader:
                 seniority_level=row[8],
                 employment_type=row[9],
                 company_name=row[10],
-                industry=row[11],
-                english_required=row[12],
-                minimum_years_experience=row[13],
-                tech_stack=_parse_tech_stack_json(row[14]),
+                job_url=row[11],
+                description_text=row[12],
+                industry=row[13],
+                english_required=row[14],
+                minimum_years_experience=row[15],
+                tech_stack=_parse_tech_stack_json(row[16]),
             )
             for row in rows
         )

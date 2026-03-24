@@ -1,4 +1,4 @@
-"""Configuration models for upstream workspace discovery, curation, and reporting."""
+"""Configuration models for upstream workspace discovery, curation, reporting, and site generation."""
 
 from mexico_linkedin_jobs_portfolio.config.curated import CuratedStorageConfig
 from mexico_linkedin_jobs_portfolio.config.reporting import (
@@ -13,6 +13,7 @@ from mexico_linkedin_jobs_portfolio.config.reporting import (
     ReportLocale,
     ReportStorageConfig,
 )
+from mexico_linkedin_jobs_portfolio.config.site import SITE_LOCALES, SiteArtifactConfig, SiteConfig
 from mexico_linkedin_jobs_portfolio.config.upstream import (
     SOURCE_MODES,
     SourceMode,
@@ -27,10 +28,13 @@ __all__ = [
     "PUBLIC_KEY_SALT_ENV",
     "REPORT_CADENCES",
     "REPORT_LOCALES",
+    "SITE_LOCALES",
     "ReportCadence",
     "ReportConfig",
     "ReportLocale",
     "ReportStorageConfig",
+    "SiteArtifactConfig",
+    "SiteConfig",
     "SOURCE_MODES",
     "SourceMode",
     "UpstreamWorkspaceConfig",

@@ -17,6 +17,12 @@ class DimensionCount:
     label: str
     count: int
 
+    @classmethod
+    def from_display_dict(cls, payload: dict[str, Any]) -> DimensionCount:
+        """Parse one serialized aggregate count entry."""
+
+        return cls(label=str(payload["label"]), count=int(payload["count"]))
+
 
 @dataclass(frozen=True, slots=True)
 class PeriodWindow:
@@ -41,6 +47,19 @@ class PeriodWindow:
             "reference_date": self.reference_date.isoformat(),
         }
 
+    @classmethod
+    def from_display_dict(cls, payload: dict[str, Any]) -> PeriodWindow:
+        """Parse one serialized reporting period."""
+
+        return cls(
+            cadence=payload["cadence"],
+            period_id=str(payload["period_id"]),
+            label=str(payload["label"]),
+            start_date=date.fromisoformat(str(payload["start_date"])),
+            end_date=date.fromisoformat(str(payload["end_date"])),
+            reference_date=date.fromisoformat(str(payload["reference_date"])),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class LatestJobRecord:
@@ -60,6 +79,8 @@ class LatestJobRecord:
     minimum_years_experience: float | None
     tech_stack: tuple[str, ...]
     company_name: str | None = None
+    job_url: str | None = None
+    description_text: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,6 +133,37 @@ class ReportMetrics:
             "tech_stack_counts": [asdict(item) for item in self.tech_stack_counts],
             "top_company_counts": [asdict(item) for item in self.top_company_counts],
         }
+
+    @classmethod
+    def from_display_dict(cls, payload: dict[str, Any]) -> ReportMetrics:
+        """Parse one serialized report-metrics payload."""
+
+        return cls(
+            period=PeriodWindow(
+                cadence=payload["cadence"],
+                period_id=str(payload["period_id"]),
+                label=str(payload["period_label"]),
+                start_date=date.fromisoformat(str(payload["period_start"])),
+                end_date=date.fromisoformat(str(payload["period_end"])),
+                reference_date=date.fromisoformat(str(payload["reference_date"])),
+            ),
+            observation_count=int(payload["observation_count"]),
+            job_count=int(payload["job_count"]),
+            source_run_count=int(payload["source_run_count"]),
+            city_counts=_parse_dimension_counts(payload.get("city_counts")),
+            remote_type_counts=_parse_dimension_counts(payload.get("remote_type_counts")),
+            seniority_counts=_parse_dimension_counts(payload.get("seniority_counts")),
+            employment_type_counts=_parse_dimension_counts(payload.get("employment_type_counts")),
+            industry_counts=_parse_dimension_counts(payload.get("industry_counts")),
+            english_requirement_counts=_parse_dimension_counts(
+                payload.get("english_requirement_counts")
+            ),
+            experience_bucket_counts=_parse_dimension_counts(
+                payload.get("experience_bucket_counts")
+            ),
+            tech_stack_counts=_parse_dimension_counts(payload.get("tech_stack_counts")),
+            top_company_counts=_parse_dimension_counts(payload.get("top_company_counts")),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,6 +245,25 @@ class ReportArtifacts:
             "html_paths": {locale: str(path) for locale, path in self.html_paths.items()},
         }
 
+    @classmethod
+    def from_display_dict(cls, payload: dict[str, Any]) -> ReportArtifacts:
+        """Parse one serialized artifact bundle."""
+
+        return cls(
+            artifact_dir=Path(str(payload["artifact_dir"])),
+            metrics_path=Path(str(payload["metrics_path"])),
+            public_csv_path=Path(str(payload["public_csv_path"])),
+            run_summary_path=Path(str(payload["run_summary_path"])),
+            markdown_paths={
+                str(locale): Path(str(path))
+                for locale, path in dict(payload.get("markdown_paths", {})).items()
+            },
+            html_paths={
+                str(locale): Path(str(path))
+                for locale, path in dict(payload.get("html_paths", {})).items()
+            },
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class ReportRunSummary:
@@ -258,3 +329,62 @@ class ReportRunSummary:
             "html_paths": {locale: str(path) for locale, path in (self.html_paths or {}).items()},
             "notes": list(self.notes),
         }
+
+    @classmethod
+    def from_display_dict(cls, payload: dict[str, Any]) -> ReportRunSummary:
+        """Parse one serialized report run summary."""
+
+        return cls(
+            command_name=str(payload["command_name"]),
+            cadence=payload["cadence"],
+            locale=payload["locale"],
+            locale_coverage=tuple(str(locale) for locale in payload.get("locale_coverage", [])),
+            curated_root=Path(str(payload["curated_root"])),
+            output_root=Path(str(payload["output_root"])),
+            dry_run=bool(payload["dry_run"]),
+            period_id=str(payload["period_id"]) if payload.get("period_id") else None,
+            period_start=(
+                date.fromisoformat(str(payload["period_start"]))
+                if payload.get("period_start")
+                else None
+            ),
+            period_end=(
+                date.fromisoformat(str(payload["period_end"])) if payload.get("period_end") else None
+            ),
+            as_of_date=(
+                date.fromisoformat(str(payload["as_of_date"])) if payload.get("as_of_date") else None
+            ),
+            observation_count=int(payload.get("observation_count", 0)),
+            job_count=int(payload.get("job_count", 0)),
+            source_run_count=int(payload.get("source_run_count", 0)),
+            public_row_count=int(payload.get("public_row_count", 0)),
+            narration_status=str(payload.get("narration_status", "not_requested")),
+            status=str(payload.get("status", "planned_shell")),
+            artifact_dir=Path(str(payload["artifact_dir"])) if payload.get("artifact_dir") else None,
+            metrics_path=Path(str(payload["metrics_path"])) if payload.get("metrics_path") else None,
+            public_csv_path=(
+                Path(str(payload["public_csv_path"])) if payload.get("public_csv_path") else None
+            ),
+            run_summary_path=(
+                Path(str(payload["run_summary_path"])) if payload.get("run_summary_path") else None
+            ),
+            markdown_paths={
+                str(locale): Path(str(path))
+                for locale, path in dict(payload.get("markdown_paths", {})).items()
+            }
+            or None,
+            html_paths={
+                str(locale): Path(str(path))
+                for locale, path in dict(payload.get("html_paths", {})).items()
+            }
+            or None,
+            notes=tuple(str(note) for note in payload.get("notes", [])),
+        )
+
+
+def _parse_dimension_counts(values: Any) -> tuple[DimensionCount, ...]:
+    if not isinstance(values, list):
+        return ()
+    return tuple(
+        DimensionCount.from_display_dict(item) for item in values if isinstance(item, dict)
+    )

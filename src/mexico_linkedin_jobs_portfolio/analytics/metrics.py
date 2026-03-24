@@ -41,7 +41,9 @@ def build_report_metrics(
         period=period,
         observation_count=len(period_records),
         job_count=len(latest_jobs),
-        source_run_count=len({record.source_run_id for record in period_records if record.source_run_id}),
+        source_run_count=len(
+            {record.source_run_id for record in period_records if record.source_run_id}
+        ),
         city_counts=_count_labels((job.city for job in latest_jobs), unknown_label=_UNKNOWN),
         remote_type_counts=_count_labels(
             (job.remote_type for job in latest_jobs),
@@ -108,6 +110,8 @@ def _select_latest_jobs(records: tuple[JoinedObservationRecord, ...]) -> tuple[L
                 minimum_years_experience=latest.minimum_years_experience,
                 tech_stack=latest.tech_stack,
                 company_name=latest.company_name,
+                job_url=latest.job_url,
+                description_text=latest.description_text,
             )
         )
 

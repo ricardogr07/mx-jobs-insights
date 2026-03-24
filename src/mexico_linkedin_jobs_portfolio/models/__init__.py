@@ -17,12 +17,20 @@ from mexico_linkedin_jobs_portfolio.models.reporting import (
     ReportMetrics,
     ReportRunSummary,
 )
+from mexico_linkedin_jobs_portfolio.models.site import (
+    DashboardState,
+    SiteArtifacts,
+    SiteReportEntry,
+    SiteReportIndex,
+    SiteRunSummary,
+)
 
 __all__ = [
     "CanonicalEntityRecord",
     "CanonicalObservationRecord",
     "CanonicalSourceRunRecord",
     "DimensionCount",
+    "DashboardState",
     "GeneratedNarrative",
     "IngestionRunSummary",
     "LatestJobRecord",
@@ -31,5 +39,9 @@ __all__ = [
     "ReportArtifacts",
     "ReportMetrics",
     "ReportRunSummary",
+    "SiteArtifacts",
+    "SiteReportEntry",
+    "SiteReportIndex",
+    "SiteRunSummary",
     "WorkspaceValidationResult",
 ]
