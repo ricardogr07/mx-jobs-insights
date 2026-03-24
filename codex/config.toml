@@ -108,6 +108,21 @@ command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main site"
 purpose = "Generate the public MkDocs source pages and copy public-safe report assets into the docs tree."
 status = "ready"
 
+[commands.pipeline_dry_run]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --dry-run --upstream-root tests/data/upstream_workspace"
+purpose = "Validate the Phase 4 orchestration contract over fixture-backed upstream data without writing durable curated, report, or site outputs."
+status = "ready"
+
+[commands.pipeline_write_weekly]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --as-of 2026-03-30 --upstream-root tests/data/upstream_workspace"
+purpose = "Run the full weekly automation entrypoint over fixture-backed upstream data, including curation, report generation, site generation, and docs validation."
+status = "ready"
+
+[commands.pipeline_write_monthly]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence monthly --as-of 2026-04-01 --upstream-root tests/data/upstream_workspace"
+purpose = "Run the full monthly automation entrypoint over fixture-backed upstream data, including curation, report generation, site generation, and docs validation."
+status = "ready"
+
 [commands.streamlit_run_local]
 command = "streamlit run src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py"
 purpose = "Launch the local-first Streamlit dashboard over curated and report artifacts."
@@ -213,6 +228,21 @@ purpose = "Own presentation smoke tests, docs validations, and public/private bo
 write_scope = "tests, docs/development, docs/codex, mkdocs.yml"
 use_when = "Validating the Phase 3 site and dashboard contract without changing core UI behavior."
 
+[subagents.pipeline_orchestrator]
+purpose = "Own the Phase 4 automation CLI, orchestration summaries, and fixture-backed pipeline integration tests."
+write_scope = "src/mexico_linkedin_jobs_portfolio/config, src/mexico_linkedin_jobs_portfolio/interfaces/cli, src/mexico_linkedin_jobs_portfolio/models, src/mexico_linkedin_jobs_portfolio/automation, tests"
+use_when = "Building the automation entrypoint that sequences curate, report, site, and docs validation."
+
+[subagents.workflow_release]
+purpose = "Own GitHub Actions workflow definitions, upstream checkout wiring, Pages deployment, and artifact retention rules."
+write_scope = ".github/, docs/development"
+use_when = "Adding or revising GitHub-native automation, schedules, or Pages deployment contracts."
+
+[subagents.automation_validation]
+purpose = "Own automation docs, command-catalog updates, workflow assertions, and runtime-secret guidance."
+write_scope = "tests, docs/development, docs/codex, codex/config.toml"
+use_when = "Validating the Phase 4 automation contract without editing orchestration or workflow core logic."
+
 [subagents.dashboard_site]
 purpose = "Own late-phase Streamlit dashboard and public site UX work when higher-level presentation changes are needed."
 write_scope = "app/, site templates, Pages docs"
@@ -249,4 +279,6 @@ target_responsibilities = [
   "safe subagent work partitioning",
   "docs and automation alignment by phase",
 ]
+
+
 

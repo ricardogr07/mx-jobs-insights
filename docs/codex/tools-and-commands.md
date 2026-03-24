@@ -1,6 +1,6 @@
 # Tools and Commands
 
-This page lists the exact local commands and tool statuses that matter during the current bootstrap, Phase 1, Phase 2 report scaffolding, and Phase 3 presentation stages.
+This page lists the exact local commands and tool statuses that matter during the current bootstrap, Phase 1, Phase 2 report scaffolding, Phase 3 presentation stages, and Phase 4 automation work.
 
 ## Repo Commands
 
@@ -89,6 +89,21 @@ This page lists the exact local commands and tool statuses that matter during th
 - Purpose: generate the public MkDocs source pages and copy public-safe report assets into the docs tree.
 - Status: `ready`
 
+### `pipeline_dry_run`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --dry-run --upstream-root tests/data/upstream_workspace`
+- Purpose: validate the Phase 4 orchestration contract over fixture-backed upstream data without writing durable curated, report, or site outputs.
+- Status: `ready`
+
+### `pipeline_write_weekly`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --as-of 2026-03-30 --upstream-root tests/data/upstream_workspace`
+- Purpose: run the full weekly automation entrypoint over fixture-backed upstream data, including curation, report generation, site generation, and docs validation.
+- Status: `ready`
+
+### `pipeline_write_monthly`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence monthly --as-of 2026-04-01 --upstream-root tests/data/upstream_workspace`
+- Purpose: run the full monthly automation entrypoint over fixture-backed upstream data, including curation, report generation, site generation, and docs validation.
+- Status: `ready`
+
 ### `streamlit_run_local`
 - Command: `streamlit run src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py`
 - Purpose: launch the local-first Streamlit dashboard over curated and report artifacts.
@@ -105,7 +120,9 @@ This page lists the exact local commands and tool statuses that matter during th
 ### `report`
 - Required for non-dry-run: `OPENAI_API_KEY`, `MX_JOBS_OPENAI_MODEL`, `MX_JOBS_PUBLIC_KEY_SALT`
 - Optional override: `MX_JOBS_OPENAI_BASE_URL`
+- Offline local validation override: `MX_JOBS_OPENAI_BASE_URL=mock://responses`
 - Purpose: provide the OpenAI auth, model selection, public-key salt, and optional API base URL used by Phase 2 report narration and publication.
+
 ### `site`
 - Purpose: provide the report-root and docs-root inputs used by Phase 3 public-site generation.
 - Required for write mode: completed Phase 2 report artifacts under `artifacts/reports`.
@@ -113,6 +130,11 @@ This page lists the exact local commands and tool statuses that matter during th
 ### `streamlit run`
 - Purpose: provide the local Streamlit app entrypoint for the Phase 3 dashboard surface.
 - Required for the app: curated DuckDB/Parquet plus completed report artifacts.
+
+### `pipeline`
+- Purpose: provide the Phase 4 automation entrypoint for fixture-backed local orchestration and GitHub Actions publication.
+- Required for non-dry-run: upstream workspace input plus the same report runtime env used by `report`.
+- Offline local validation may set `MX_JOBS_OPENAI_BASE_URL=mock://responses` to avoid live network calls while still exercising the full write path.
 
 ## Local Tool Status
 
@@ -185,6 +207,7 @@ These commands document the reviewed Phase 2 report surface and the runtime envi
 - Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report --cadence monthly --as-of 2026-04-01 --curated-root artifacts/curated --output-root artifacts/reports`
 - Status: ready
 - Purpose: validate the monthly report write path, including bilingual Markdown/HTML, public CSV filtering, and OpenAI narration when runtime env is configured.
+
 ## Phase 3 Planned Shells
 These commands document the reviewed Phase 3 public-site and dashboard surface.
 
@@ -203,6 +226,33 @@ These commands document the reviewed Phase 3 public-site and dashboard surface.
 - Status: ready
 - Purpose: launch the local-first Streamlit dashboard over curated and report artifacts.
 - Windows fallback: `python -m streamlit run src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py` when `streamlit.exe` is not on `PATH`.
+
+## Phase 4 Planned Shells
+These commands document the reviewed Phase 4 automation surface.
+
+### `pipeline --cadence weekly --dry-run`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --dry-run --upstream-root tests/data/upstream_workspace`
+- Status: ready
+- Purpose: validate the orchestration contract and fixture-backed source/report/site readiness without writing durable outputs.
+
+### `pipeline --cadence weekly`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --as-of 2026-03-30 --upstream-root tests/data/upstream_workspace`
+- Status: ready
+- Purpose: validate the full weekly automation entrypoint, including curated writes, report artifacts, public site generation, and strict docs build checks.
+
+### `pipeline --cadence monthly`
+- Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence monthly --as-of 2026-04-01 --upstream-root tests/data/upstream_workspace`
+- Status: ready
+- Purpose: validate the full monthly automation entrypoint, including curated writes, report artifacts, public site generation, and strict docs build checks.
+
+### `GitHub Actions publish workflow`
+- Command: `.github/workflows/phase4-automation.yml`
+- Status: ready
+- Purpose: define the manual-dispatch and scheduled GitHub-native automation that runs `pipeline`, uploads a Pages artifact, and deploys GitHub Pages without auto-committing generated files.
+
+
+
+
 
 
 

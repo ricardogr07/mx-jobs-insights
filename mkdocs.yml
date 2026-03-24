@@ -18,6 +18,7 @@ nav:
       - Phase 1 Ingest And Curate Usage: development/phase-1-ingest-curate-usage.md
       - Phase 2 Report Usage: development/phase-2-report-usage.md
       - Phase 3 Site And Dashboard Usage: development/phase-3-site-and-dashboard-usage.md
+      - Phase 4 Automation Usage: development/phase-4-automation-usage.md
       - Codex:
           - Overview: codex/index.md
           - Subagents: codex/subagents.md
@@ -26,4 +27,5 @@ nav:
           - Integrations: codex/integrations.md
 plugins:
   - search
+
 
