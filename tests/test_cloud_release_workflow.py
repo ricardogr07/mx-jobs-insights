@@ -4,19 +4,19 @@ from pathlib import Path
 
 import pytest
 
-WORKFLOW_PATH = Path('.github/workflows/cloud-release.yml')
+WORKFLOW_PATH = Path('.github/workflows/release-cloud-run-job.yml')
 
 
 def _load_workflow_text() -> str:
     if not WORKFLOW_PATH.is_file():
-        pytest.skip('Phase 5 cloud workflow file has not been added yet.')
+        pytest.skip('Cloud Run release workflow file is not present in this checkout.')
     return WORKFLOW_PATH.read_text(encoding='utf-8')
 
 
-def test_cloud_release_workflow_matches_phase_5_contract() -> None:
+def test_cloud_run_release_workflow_contract() -> None:
     text = _load_workflow_text()
 
-    assert 'name: Cloud Release' in text
+    assert 'name: Release Cloud Run Job' in text
     assert 'workflow_dispatch:' in text
     assert 'image_tag:' in text
     assert 'deploy_job:' in text
@@ -33,4 +33,4 @@ def test_cloud_release_workflow_matches_phase_5_contract() -> None:
     assert 'OPENAI_API_KEY' in text
     assert 'MX_JOBS_PUBLIC_KEY_SALT' in text
     assert 'GITHUB_STEP_SUMMARY' in text
-    assert '# Cloud release summary' in text
+    assert '# Cloud Run release summary' in text

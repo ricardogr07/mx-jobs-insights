@@ -1,4 +1,4 @@
-name: Cloud Release
+name: Release Cloud Run Job
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ on:
         default: true
 
 concurrency:
-  group: cloud-release
+  group: release-cloud-run-job
   cancel-in-progress: false
 
 permissions:
@@ -159,7 +159,7 @@ jobs:
           deploy_requested="${{ inputs.deploy_job }}"
           terraform_validated="${{ inputs.terraform_validate }}"
           {
-            echo "# Cloud release summary"
+            echo "# Cloud Run release summary"
             echo
             echo "- Image tag: \`${{ steps.metadata.outputs.image_tag }}\`"
             echo "- Image URI: \`${{ steps.metadata.outputs.image_uri }}\`"
