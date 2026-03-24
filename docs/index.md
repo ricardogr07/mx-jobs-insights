@@ -1,17 +1,17 @@
-# Project Docs
+# Mexico LinkedIn Jobs Portfolio / Portafolio de Vacantes de LinkedIn en Mexico
 
-This documentation tree is being bootstrapped in phase 0.
+This public site is generated from reviewed weekly and monthly report artifacts. / Este sitio publico se genera a partir de artefactos semanales y mensuales ya revisados.
 
-## Current Internal Docs
-- [Source Data Contract](development/source-data-contract.md)
-- [Public Data Policy](development/public-data-policy.md)
-- [Presentation Policy](development/presentation-policy.md)
-- [Phase 1 Ingest And Curate Usage](development/phase-1-ingest-curate-usage.md)
-- [Phase 2 Report Usage](development/phase-2-report-usage.md)
-- [Codex Enablement](codex/index.md)
-- [Subagents](codex/subagents.md)
-- [Skills](codex/skills.md)
-- [Tools and Commands](codex/tools-and-commands.md)
-- [Integrations](codex/integrations.md)
+- Weekly archive / Archivo semanal: [Open / Abrir](public/weekly/index.md)
+- Monthly archive / Archivo mensual: [Open / Abrir](public/monthly/index.md)
+- Downloads / Descargas: [Open / Abrir](public/downloads/index.md)
+- Methodology / Metodologia: [Open / Abrir](public/methodology.md)
 
-The current roadmap is maintained in the repository root `PLAN.md`.
+## Latest Weekly Report / Reporte Semanal Mas Reciente
+No report available yet. / Aun no hay reporte disponible.
+
+## Latest Monthly Report / Reporte Mensual Mas Reciente
+- Period / Periodo: [2026-03](public/monthly/2026-03.md)
+- Jobs / Vacantes: 2
+- Observations / Observaciones: 2
+- Assets / Activos: [public_jobs.csv](public/assets/monthly/2026-03/public_jobs.csv) | [HTML EN](public/assets/monthly/2026-03/report.en.html) | [HTML ES](public/assets/monthly/2026-03/report.es.html)

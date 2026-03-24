@@ -1,0 +1,3 @@
+public_job_key,title,as_of_date,city,state,remote_type,seniority_level,employment_type,industry,english_required,min_years_experience,tech_stack
+a9189406dbe5bf5bff54033abad4db2dc15b214344f16215b8b238adbe8ed8b4,Senior Data Scientist,2026-03-22,Monterrey,Nuevo Leon,Remote,Senior level,Full-time,Technology,True,3.0,Python | SQL | dbt
+9670c00ef26059580ee26fad5b8ecc49214eed8c1b2864f227910c88d49c7c0e,ML Engineer,2026-03-22,Guadalajara,Jalisco,Hybrid,Mid level,Contract,Consulting,False,2.0,Python | Airflow

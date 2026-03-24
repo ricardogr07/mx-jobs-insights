@@ -4,13 +4,20 @@ docs_dir: docs
 theme:
   name: material
 nav:
-  - Overview: index.md
+  - Public:
+      - Overview: index.md
+      - Weekly Archive: public/weekly/index.md
+      - Monthly Archive: public/monthly/index.md
+      - Methodology: public/methodology.md
+      - Downloads: public/downloads/index.md
   - Development:
+      - Overview: development/index.md
       - Source Data Contract: development/source-data-contract.md
       - Public Data Policy: development/public-data-policy.md
       - Presentation Policy: development/presentation-policy.md
       - Phase 1 Ingest And Curate Usage: development/phase-1-ingest-curate-usage.md
       - Phase 2 Report Usage: development/phase-2-report-usage.md
+      - Phase 3 Site And Dashboard Usage: development/phase-3-site-and-dashboard-usage.md
       - Codex:
           - Overview: codex/index.md
           - Subagents: codex/subagents.md
@@ -19,3 +26,4 @@ nav:
           - Integrations: codex/integrations.md
 plugins:
   - search
+
