@@ -1,4 +1,4 @@
-"""Configuration models for Phase 4 automation orchestration."""
+"""Configuration models for automation orchestration and optional Phase 5 cloud delivery."""
 
 from __future__ import annotations
 
@@ -6,6 +6,15 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from mexico_linkedin_jobs_portfolio.config.cloud import (
+    BIGQUERY_PRIVATE_DATASET_ENV,
+    BIGQUERY_PUBLIC_DATASET_ENV,
+    GCP_REGION_ENV,
+    GCS_BUCKET_ENV,
+    GCS_PREFIX_ENV,
+    GOOGLE_CLOUD_PROJECT_ENV,
+    CloudEnvironmentConfig,
+)
 from mexico_linkedin_jobs_portfolio.config.curated import CuratedStorageConfig
 from mexico_linkedin_jobs_portfolio.config.reporting import (
     OPENAI_API_KEY_ENV,
@@ -20,7 +29,10 @@ from mexico_linkedin_jobs_portfolio.config.reporting import (
 )
 from mexico_linkedin_jobs_portfolio.config.site import SiteConfig
 from mexico_linkedin_jobs_portfolio.config.upstream import (
+    DEFAULT_UPSTREAM_REPO_URL,
     SOURCE_MODES,
+    UPSTREAM_REF_ENV,
+    UPSTREAM_REPO_URL_ENV,
     SourceMode,
     UpstreamWorkspaceConfig,
 )
@@ -36,20 +48,16 @@ class PipelineArtifactConfig:
     root: Path = Path("artifacts/pipeline")
 
     def resolved_root(self) -> Path:
-        """Return the normalized pipeline-artifact root."""
-
         return self.root.expanduser().resolve(strict=False)
 
     @property
     def run_summary_path(self) -> Path:
-        """Return the canonical pipeline run-summary path."""
-
         return self.resolved_root() / "run_summary.json"
 
 
 @dataclass(frozen=True, slots=True)
 class PipelineConfig:
-    """Describe one Phase 4 pipeline orchestration request."""
+    """Describe one pipeline orchestration request across local, GitHub, and cloud."""
 
     cadence: ReportCadence
     source_mode: SourceMode = "auto"
@@ -64,23 +72,29 @@ class PipelineConfig:
     openai_model: str | None = None
     public_key_salt: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
+    upstream_repo_url: str = DEFAULT_UPSTREAM_REPO_URL
+    upstream_ref: str | None = None
+    google_cloud_project: str | None = None
+    gcp_region: str | None = None
+    gcs_bucket: str | None = None
+    gcs_prefix: str | None = None
+    bigquery_private_dataset: str | None = None
+    bigquery_public_dataset: str | None = None
 
     @property
     def workspace(self) -> UpstreamWorkspaceConfig:
-        """Return the upstream workspace config used by the pipeline."""
-
-        return UpstreamWorkspaceConfig(root=self.upstream_root, source_mode=self.source_mode)
+        return UpstreamWorkspaceConfig(
+            root=self.upstream_root,
+            source_mode=self.source_mode,
+            preferred_ref=self.upstream_ref or UpstreamWorkspaceConfig().preferred_ref,
+        )
 
     @property
     def curated_storage(self) -> CuratedStorageConfig:
-        """Return the curated storage config used by the pipeline."""
-
         return CuratedStorageConfig(root=self.curated_root)
 
     @property
     def report_config(self) -> ReportConfig:
-        """Return the report-generation request derived from the pipeline config."""
-
         return ReportConfig(
             cadence=self.cadence,
             locale=self.locale,
@@ -96,8 +110,6 @@ class PipelineConfig:
 
     @property
     def site_config(self) -> SiteConfig:
-        """Return the site-generation request derived from the pipeline config."""
-
         return SiteConfig(
             report_root=self.report_root,
             docs_root=self.docs_root,
@@ -106,22 +118,27 @@ class PipelineConfig:
         )
 
     @property
-    def pipeline_artifacts(self) -> PipelineArtifactConfig:
-        """Return the configured pipeline-artifact root."""
+    def cloud_environment(self) -> CloudEnvironmentConfig:
+        return CloudEnvironmentConfig(
+            project_id=self.google_cloud_project,
+            region=self.gcp_region,
+            gcs_bucket=self.gcs_bucket,
+            gcs_prefix=self.gcs_prefix,
+            bigquery_private_dataset=self.bigquery_private_dataset,
+            bigquery_public_dataset=self.bigquery_public_dataset,
+        )
 
+    @property
+    def pipeline_artifacts(self) -> PipelineArtifactConfig:
         return PipelineArtifactConfig()
 
     @property
     def locale_coverage(self) -> tuple[str, ...]:
-        """Return the locales that should be rendered for this request."""
-
         if self.locale == "all":
             return ("en", "es")
         return (self.locale,)
 
     def missing_runtime_env(self) -> tuple[str, ...]:
-        """Return missing environment-backed values for a non-dry-run pipeline."""
-
         missing: list[str] = []
         if not self.openai_api_key:
             missing.append(OPENAI_API_KEY_ENV)
@@ -131,9 +148,12 @@ class PipelineConfig:
             missing.append(PUBLIC_KEY_SALT_ENV)
         return tuple(missing)
 
-    def to_display_dict(self) -> dict[str, str | list[str] | None | bool]:
-        """Serialize the pipeline request for CLI or workflow output."""
+    def missing_cloud_runtime_env(self) -> tuple[str, ...]:
+        if not self.cloud_environment.cloud_requested:
+            return ()
+        return self.cloud_environment.missing_runtime_env()
 
+    def to_display_dict(self) -> dict[str, object]:
         return {
             "cadence": self.cadence,
             "source_mode": self.source_mode,
@@ -146,7 +166,14 @@ class PipelineConfig:
             "docs_root": str(self.site_config.docs_root_resolved),
             "dry_run": self.dry_run,
             "openai_base_url": self.openai_base_url,
+            "upstream_repo_url": self.upstream_repo_url,
+            "upstream_ref": self.workspace.preferred_ref,
             "missing_runtime_env": list(self.missing_runtime_env()) if not self.dry_run else [],
+            "missing_cloud_runtime_env": (
+                list(self.missing_cloud_runtime_env())
+                if self.cloud_environment.cloud_requested and not self.dry_run
+                else []
+            ),
             "source_choices": list(SOURCE_MODES),
             "cadence_choices": list(PIPELINE_CADENCES),
             "locale_choices": list(PIPELINE_LOCALES),
@@ -155,5 +182,16 @@ class PipelineConfig:
                 OPENAI_MODEL_ENV,
                 PUBLIC_KEY_SALT_ENV,
                 OPENAI_BASE_URL_ENV,
+            ],
+            "cloud_environment": self.cloud_environment.to_display_dict(),
+            "cloud_env_names": [
+                GOOGLE_CLOUD_PROJECT_ENV,
+                GCP_REGION_ENV,
+                GCS_BUCKET_ENV,
+                GCS_PREFIX_ENV,
+                BIGQUERY_PRIVATE_DATASET_ENV,
+                BIGQUERY_PUBLIC_DATASET_ENV,
+                UPSTREAM_REPO_URL_ENV,
+                UPSTREAM_REF_ENV,
             ],
         }

@@ -1,5 +1,11 @@
-"""Canonical data models shared by ingestion, curation, analytics, and reporting layers."""
+"""Canonical data models shared by ingestion, curation, analytics, reporting, and cloud delivery."""
 
+from mexico_linkedin_jobs_portfolio.models.cloud import (
+    BigQueryExportResult,
+    BigQueryTableExport,
+    CloudSyncResult,
+    UploadedObject,
+)
 from mexico_linkedin_jobs_portfolio.models.ingestion import (
     CanonicalEntityRecord,
     CanonicalObservationRecord,
@@ -27,11 +33,14 @@ from mexico_linkedin_jobs_portfolio.models.site import (
 )
 
 __all__ = [
+    "BigQueryExportResult",
+    "BigQueryTableExport",
     "CanonicalEntityRecord",
     "CanonicalObservationRecord",
     "CanonicalSourceRunRecord",
-    "DimensionCount",
+    "CloudSyncResult",
     "DashboardState",
+    "DimensionCount",
     "GeneratedNarrative",
     "IngestionRunSummary",
     "LatestJobRecord",
@@ -45,5 +54,6 @@ __all__ = [
     "SiteReportEntry",
     "SiteReportIndex",
     "SiteRunSummary",
+    "UploadedObject",
     "WorkspaceValidationResult",
 ]

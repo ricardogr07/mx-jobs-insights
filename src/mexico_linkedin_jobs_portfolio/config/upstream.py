@@ -8,6 +8,9 @@ from typing import Literal
 
 SourceMode = Literal["auto", "sqlite", "csv"]
 SOURCE_MODES: tuple[SourceMode, ...] = ("auto", "sqlite", "csv")
+DEFAULT_UPSTREAM_REPO_URL = "https://github.com/ricardogr07/LinkedInWebScraper.git"
+UPSTREAM_REPO_URL_ENV = "MX_JOBS_UPSTREAM_REPO_URL"
+UPSTREAM_REF_ENV = "MX_JOBS_UPSTREAM_REF"
 
 
 @dataclass(frozen=True, slots=True)

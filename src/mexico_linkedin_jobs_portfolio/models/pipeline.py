@@ -1,4 +1,4 @@
-"""Phase 4 automation pipeline models."""
+"""Automation pipeline models shared across local, GitHub, and Phase 5 cloud delivery."""
 
 from __future__ import annotations
 
@@ -8,11 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from mexico_linkedin_jobs_portfolio.config import ReportCadence, ReportLocale, SourceMode
+from mexico_linkedin_jobs_portfolio.models.cloud import BigQueryExportResult, CloudSyncResult
 
 
 @dataclass(frozen=True, slots=True)
 class PipelineRunSummary:
-    """CLI-facing summary of one Phase 4 automation pipeline run."""
+    """CLI-facing summary of one automation pipeline run."""
 
     command_name: str
     cadence: ReportCadence
@@ -38,18 +39,22 @@ class PipelineRunSummary:
     report_status: str = "not_run"
     site_status: str = "not_run"
     docs_status: str = "not_run"
+    cloud_storage_status: str = "not_requested"
+    bigquery_status: str = "not_requested"
     publish_ready: bool = False
+    cloud_ready: bool = False
+    cloud_requested: bool = False
     duckdb_path: Path | None = None
     report_run_summary_path: Path | None = None
     site_run_summary_path: Path | None = None
     pipeline_run_summary_path: Path | None = None
     site_output_root: Path | None = None
+    cloud_sync: CloudSyncResult | None = None
+    bigquery_export: BigQueryExportResult | None = None
     status: str = "planned_shell"
     notes: tuple[str, ...] = ()
 
     def to_display_dict(self) -> dict[str, Any]:
-        """Serialize the pipeline summary for CLI JSON output."""
-
         return {
             "command_name": self.command_name,
             "cadence": self.cadence,
@@ -75,7 +80,11 @@ class PipelineRunSummary:
             "report_status": self.report_status,
             "site_status": self.site_status,
             "docs_status": self.docs_status,
+            "cloud_storage_status": self.cloud_storage_status,
+            "bigquery_status": self.bigquery_status,
             "publish_ready": self.publish_ready,
+            "cloud_ready": self.cloud_ready,
+            "cloud_requested": self.cloud_requested,
             "duckdb_path": str(self.duckdb_path) if self.duckdb_path is not None else None,
             "report_run_summary_path": (
                 str(self.report_run_summary_path)
@@ -92,6 +101,10 @@ class PipelineRunSummary:
             ),
             "site_output_root": (
                 str(self.site_output_root) if self.site_output_root is not None else None
+            ),
+            "cloud_sync": self.cloud_sync.to_display_dict() if self.cloud_sync is not None else None,
+            "bigquery_export": (
+                self.bigquery_export.to_display_dict() if self.bigquery_export is not None else None
             ),
             "status": self.status,
             "notes": list(self.notes),

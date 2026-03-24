@@ -31,6 +31,10 @@ dependencies = [
 app = [
   "streamlit>=1.32.0",
 ]
+cloud = [
+  "google-cloud-bigquery>=3.31.0",
+  "google-cloud-storage>=2.19.0",
+]
 dev = [
   "build>=1.2.2",
   "mkdocs>=1.6.1",

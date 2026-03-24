@@ -13,6 +13,13 @@ from typing import cast
 
 from mexico_linkedin_jobs_portfolio.automation import PipelineOrchestrator
 from mexico_linkedin_jobs_portfolio.config import (
+    BIGQUERY_PRIVATE_DATASET_ENV,
+    BIGQUERY_PUBLIC_DATASET_ENV,
+    DEFAULT_UPSTREAM_REPO_URL,
+    GCP_REGION_ENV,
+    GCS_BUCKET_ENV,
+    GCS_PREFIX_ENV,
+    GOOGLE_CLOUD_PROJECT_ENV,
     OPENAI_API_KEY_ENV,
     OPENAI_BASE_URL_ENV,
     OPENAI_MODEL_ENV,
@@ -23,6 +30,8 @@ from mexico_linkedin_jobs_portfolio.config import (
     REPORT_LOCALES,
     SITE_LOCALES,
     SOURCE_MODES,
+    UPSTREAM_REF_ENV,
+    UPSTREAM_REPO_URL_ENV,
     CuratedStorageConfig,
     PipelineConfig,
     ReportCadence,
@@ -249,6 +258,14 @@ def build_pipeline_config(args: argparse.Namespace) -> PipelineConfig:
         openai_model=os.environ.get(OPENAI_MODEL_ENV),
         public_key_salt=os.environ.get(PUBLIC_KEY_SALT_ENV),
         openai_base_url=os.environ.get(OPENAI_BASE_URL_ENV, "https://api.openai.com/v1"),
+        upstream_repo_url=os.environ.get(UPSTREAM_REPO_URL_ENV, DEFAULT_UPSTREAM_REPO_URL),
+        upstream_ref=os.environ.get(UPSTREAM_REF_ENV),
+        google_cloud_project=os.environ.get(GOOGLE_CLOUD_PROJECT_ENV),
+        gcp_region=os.environ.get(GCP_REGION_ENV),
+        gcs_bucket=os.environ.get(GCS_BUCKET_ENV),
+        gcs_prefix=os.environ.get(GCS_PREFIX_ENV),
+        bigquery_private_dataset=os.environ.get(BIGQUERY_PRIVATE_DATASET_ENV),
+        bigquery_public_dataset=os.environ.get(BIGQUERY_PUBLIC_DATASET_ENV),
     )
 
 
@@ -488,3 +505,5 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
