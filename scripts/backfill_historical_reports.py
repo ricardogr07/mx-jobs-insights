@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from datetime import date, timedelta
+from datetime import date
 
 # Weekly periods to backfill (W01-W11)
 # Each tuple is (end_of_week_date, week_id)
@@ -113,12 +113,12 @@ def main() -> int:
     print("=" * 80)
     total = len(WEEKLY_BACKFILLS) + len(MONTHLY_BACKFILLS) + 1
     if failed_reports:
-        print(f"❌ {len(failed_reports)} of {total} reports failed:")
+        print(f"[FAILED] {len(failed_reports)} of {total} reports failed:")
         for report in failed_reports:
             print(f"   - {report}")
         return 1
     else:
-        print(f"✅ All {total} reports completed successfully!")
+        print(f"[SUCCESS] All {total} reports completed successfully!")
         print("\nNext steps:")
         print("1. Verify the generated reports look correct visually")
         print("2. Run 'mkdocs build' to regenerate the site with new report content")
