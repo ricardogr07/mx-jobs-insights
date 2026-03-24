@@ -51,6 +51,22 @@ jobs:
         id: install
         run: python -m pip install -e ".[dev]"
 
+      - name: Run full pipeline to generate curated data
+        id: run_pipeline
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Generating curated data from upstream source..."
+          python -m mexico_linkedin_jobs_portfolio pipeline \
+            --cadence weekly \
+            --source auto \
+            --upstream-root LinkedInWebScraper \
+            --curated-root artifacts/curated \
+            --report-root artifacts/reports \
+            --docs-root docs \
+            --locale all
+          echo "Curated data generated successfully!"
+
       - name: Run historical report backfill
         id: run_backfill
         shell: bash
