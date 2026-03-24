@@ -1,0 +1,170 @@
+name: Cloud Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Container image tag suffix. Leave blank to use the commit SHA.
+        required: false
+        type: string
+      deploy_job:
+        description: Deploy the Cloud Run Job after pushing the image.
+        required: true
+        type: boolean
+        default: true
+      terraform_validate:
+        description: Run Terraform fmt/validate before building and deploying.
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: cloud-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY }}
+      CLOUD_RUN_JOB_NAME: ${{ vars.CLOUD_RUN_JOB_NAME }}
+      CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT: ${{ vars.CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT }}
+      GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+      GCP_RELEASE_SERVICE_ACCOUNT: ${{ vars.GCP_RELEASE_SERVICE_ACCOUNT }}
+      MX_JOBS_OPENAI_MODEL: ${{ vars.MX_JOBS_OPENAI_MODEL }}
+      MX_JOBS_OPENAI_BASE_URL: ${{ vars.MX_JOBS_OPENAI_BASE_URL }}
+      MX_JOBS_GCS_BUCKET: ${{ vars.MX_JOBS_GCS_BUCKET }}
+      MX_JOBS_BIGQUERY_PRIVATE_DATASET: ${{ vars.MX_JOBS_BIGQUERY_PRIVATE_DATASET }}
+      MX_JOBS_BIGQUERY_PUBLIC_DATASET: ${{ vars.MX_JOBS_BIGQUERY_PUBLIC_DATASET }}
+      MX_JOBS_GCS_PREFIX: ${{ vars.MX_JOBS_GCS_PREFIX }}
+      MX_JOBS_UPSTREAM_REPO_URL: ${{ vars.MX_JOBS_UPSTREAM_REPO_URL }}
+      MX_JOBS_UPSTREAM_REF: ${{ vars.MX_JOBS_UPSTREAM_REF }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      MX_JOBS_PUBLIC_KEY_SALT: ${{ secrets.MX_JOBS_PUBLIC_KEY_SALT }}
+      CLOUD_RUN_DEFAULT_CADENCE: ${{ vars.CLOUD_RUN_DEFAULT_CADENCE }}
+      CLOUD_RUN_DEFAULT_LOCALE: ${{ vars.CLOUD_RUN_DEFAULT_LOCALE }}
+      CLOUD_RUN_UPSTREAM_ROOT: ${{ vars.CLOUD_RUN_UPSTREAM_ROOT }}
+      CLOUD_RUN_CURATED_ROOT: ${{ vars.CLOUD_RUN_CURATED_ROOT }}
+      CLOUD_RUN_REPORT_ROOT: ${{ vars.CLOUD_RUN_REPORT_ROOT }}
+      CLOUD_RUN_DOCS_ROOT: ${{ vars.CLOUD_RUN_DOCS_ROOT }}
+      CLOUD_RUN_AS_OF_DATE: ${{ vars.CLOUD_RUN_AS_OF_DATE }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_RELEASE_SERVICE_ACCOUNT }}
+          token_format: access_token
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set gcloud project
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud config set project "${GCP_PROJECT_ID}"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8.5"
+
+      - name: Derive image metadata
+        id: metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_tag="${{ inputs.image_tag }}"
+          if [[ -z "${image_tag}" ]]; then
+            image_tag="${GITHUB_SHA}"
+          fi
+          image_uri="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/mx-jobs-insights-pipeline:${image_tag}"
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+          echo "image_uri=${image_uri}" >> "$GITHUB_OUTPUT"
+
+      - name: Terraform fmt and validate
+        if: inputs.terraform_validate
+        shell: bash
+        working-directory: infra/terraform
+        run: |
+          set -euo pipefail
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+
+      - name: Authenticate Docker to Artifact Registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+
+      - name: Build container image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build -t "${{ steps.metadata.outputs.image_uri }}" .
+
+      - name: Push container image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker push "${{ steps.metadata.outputs.image_uri }}"
+
+      - name: Deploy Cloud Run Job
+        if: inputs.deploy_job
+        shell: bash
+        run: |
+          set -euo pipefail
+          upstream_repo_url="${MX_JOBS_UPSTREAM_REPO_URL:-https://github.com/ricardogr07/LinkedInWebScraper.git}"
+          upstream_ref="${MX_JOBS_UPSTREAM_REF:-data}"
+          args=(
+            --cadence "${CLOUD_RUN_DEFAULT_CADENCE}"
+            --source auto
+            --upstream-root "${CLOUD_RUN_UPSTREAM_ROOT}"
+            --curated-root "${CLOUD_RUN_CURATED_ROOT}"
+            --report-root "${CLOUD_RUN_REPORT_ROOT}"
+            --docs-root "${CLOUD_RUN_DOCS_ROOT}"
+            --locale "${CLOUD_RUN_DEFAULT_LOCALE}"
+          )
+          if [[ -n "${CLOUD_RUN_AS_OF_DATE}" ]]; then
+            args+=(--as-of "${CLOUD_RUN_AS_OF_DATE}")
+          fi
+          args_csv="$(IFS=,; echo "${args[*]}")"
+          gcloud run jobs deploy "${CLOUD_RUN_JOB_NAME}" \
+            --project "${GCP_PROJECT_ID}" \
+            --image "${{ steps.metadata.outputs.image_uri }}" \
+            --region "${GCP_REGION}" \
+            --service-account "${CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT}" \
+            --args "${args_csv}" \
+            --set-env-vars "GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID},MX_JOBS_GCP_REGION=${GCP_REGION},MX_JOBS_GCS_BUCKET=${MX_JOBS_GCS_BUCKET},MX_JOBS_BIGQUERY_PRIVATE_DATASET=${MX_JOBS_BIGQUERY_PRIVATE_DATASET},MX_JOBS_BIGQUERY_PUBLIC_DATASET=${MX_JOBS_BIGQUERY_PUBLIC_DATASET},MX_JOBS_GCS_PREFIX=${MX_JOBS_GCS_PREFIX},MX_JOBS_OPENAI_MODEL=${MX_JOBS_OPENAI_MODEL},MX_JOBS_OPENAI_BASE_URL=${MX_JOBS_OPENAI_BASE_URL},MX_JOBS_UPSTREAM_REPO_URL=${upstream_repo_url},MX_JOBS_UPSTREAM_REF=${upstream_ref},CLOUD_RUN_DEFAULT_CADENCE=${CLOUD_RUN_DEFAULT_CADENCE},CLOUD_RUN_DEFAULT_LOCALE=${CLOUD_RUN_DEFAULT_LOCALE},CLOUD_RUN_UPSTREAM_ROOT=${CLOUD_RUN_UPSTREAM_ROOT},CLOUD_RUN_CURATED_ROOT=${CLOUD_RUN_CURATED_ROOT},CLOUD_RUN_REPORT_ROOT=${CLOUD_RUN_REPORT_ROOT},CLOUD_RUN_DOCS_ROOT=${CLOUD_RUN_DOCS_ROOT},CLOUD_RUN_AS_OF_DATE=${CLOUD_RUN_AS_OF_DATE}" \
+            --set-secrets "OPENAI_API_KEY=OPENAI_API_KEY:latest,MX_JOBS_PUBLIC_KEY_SALT=MX_JOBS_PUBLIC_KEY_SALT:latest"
+
+      - name: Write job summary
+        if: always()
+        shell: bash
+        run: |
+          deploy_requested="${{ inputs.deploy_job }}"
+          terraform_validated="${{ inputs.terraform_validate }}"
+          {
+            echo "# Cloud release summary"
+            echo
+            echo "- Image tag: \`${{ steps.metadata.outputs.image_tag }}\`"
+            echo "- Image URI: \`${{ steps.metadata.outputs.image_uri }}\`"
+            echo "- Terraform validated: \`${terraform_validated}\`"
+            echo "- Cloud Run deploy requested: \`${deploy_requested}\`"
+            echo "- Upstream repo: \`${MX_JOBS_UPSTREAM_REPO_URL:-default}\` @ \`${MX_JOBS_UPSTREAM_REF:-data}\`"
+            echo "- Public repo: \`${{ github.repository }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
