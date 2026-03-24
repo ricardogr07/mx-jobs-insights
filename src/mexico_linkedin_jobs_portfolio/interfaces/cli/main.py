@@ -1,4 +1,4 @@
-"""CLI entrypoints for Phase 1 ingestion/curation, Phase 2 reports, and Phase 3 site generation."""
+"""CLI entrypoints for Phase 1-4 ingestion, reporting, site generation, and automation."""
 
 from __future__ import annotations
 
@@ -11,16 +11,20 @@ from datetime import date
 from pathlib import Path
 from typing import cast
 
+from mexico_linkedin_jobs_portfolio.automation import PipelineOrchestrator
 from mexico_linkedin_jobs_portfolio.config import (
     OPENAI_API_KEY_ENV,
     OPENAI_BASE_URL_ENV,
     OPENAI_MODEL_ENV,
+    PIPELINE_CADENCES,
+    PIPELINE_LOCALES,
     PUBLIC_KEY_SALT_ENV,
     REPORT_CADENCES,
     REPORT_LOCALES,
     SITE_LOCALES,
     SOURCE_MODES,
     CuratedStorageConfig,
+    PipelineConfig,
     ReportCadence,
     ReportConfig,
     ReportLocale,
@@ -65,7 +69,7 @@ def add_shared_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the current CLI parser for ingest, curate, report, and site."""
+    """Build the current CLI parser for ingest, curate, report, site, and pipeline."""
 
     parser = argparse.ArgumentParser(prog="mx-jobs-insights")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -142,6 +146,43 @@ def build_parser() -> argparse.ArgumentParser:
         help="Resolve the public site index without writing MkDocs source pages.",
     )
 
+    pipeline_parser = subparsers.add_parser(
+        "pipeline", help="Run the Phase 4 automation entrypoint over the existing pipeline seams."
+    )
+    add_shared_arguments(pipeline_parser)
+    pipeline_parser.add_argument(
+        "--cadence",
+        choices=PIPELINE_CADENCES,
+        required=True,
+        help="Closed reporting cadence to publish through the automation pipeline.",
+    )
+    pipeline_parser.add_argument(
+        "--as-of",
+        dest="as_of_date",
+        help="Optional YYYY-MM-DD reference date used to resolve the latest completed period.",
+    )
+    pipeline_parser.add_argument(
+        "--locale",
+        choices=PIPELINE_LOCALES,
+        default="all",
+        help="Locale scope for generated reports and public site outputs.",
+    )
+    pipeline_parser.add_argument(
+        "--curated-root",
+        default=str(CuratedStorageConfig().root),
+        help="Directory where curated DuckDB state and Parquet sidecars should be written.",
+    )
+    pipeline_parser.add_argument(
+        "--report-root",
+        default="artifacts/reports",
+        help="Directory where generated report artifacts should be written.",
+    )
+    pipeline_parser.add_argument(
+        "--docs-root",
+        default="docs",
+        help="Directory where public MkDocs source pages should be generated.",
+    )
+
     return parser
 
 
@@ -187,6 +228,27 @@ def build_site_config(args: argparse.Namespace) -> SiteConfig:
         docs_root=Path(args.docs_root),
         locale=cast(ReportLocale, args.locale),
         dry_run=bool(args.dry_run),
+    )
+
+
+def build_pipeline_config(args: argparse.Namespace) -> PipelineConfig:
+    """Translate parsed CLI arguments and environment into the Phase 4 pipeline config."""
+
+    as_of_date = date.fromisoformat(args.as_of_date) if args.as_of_date else None
+    return PipelineConfig(
+        cadence=cast(ReportCadence, args.cadence),
+        source_mode=cast(SourceMode, args.source),
+        upstream_root=Path(args.upstream_root),
+        curated_root=Path(args.curated_root),
+        report_root=Path(args.report_root),
+        docs_root=Path(args.docs_root),
+        locale=cast(ReportLocale, args.locale),
+        as_of_date=as_of_date,
+        dry_run=bool(args.dry_run),
+        openai_api_key=os.environ.get(OPENAI_API_KEY_ENV),
+        openai_model=os.environ.get(OPENAI_MODEL_ENV),
+        public_key_salt=os.environ.get(PUBLIC_KEY_SALT_ENV),
+        openai_base_url=os.environ.get(OPENAI_BASE_URL_ENV, "https://api.openai.com/v1"),
     )
 
 
@@ -364,8 +426,22 @@ def execute_site(args: argparse.Namespace) -> tuple[dict[str, object], int]:
     return payload, exit_code
 
 
+def execute_pipeline(args: argparse.Namespace) -> tuple[dict[str, object], int]:
+    """Execute the Phase 4 automation path and return the CLI payload plus exit code."""
+
+    pipeline_config = build_pipeline_config(args)
+    summary, exit_code = PipelineOrchestrator().run(pipeline_config)
+    payload = summary.to_display_dict()
+    payload["pipeline_request"] = pipeline_config.to_display_dict()
+    payload["workspace"] = pipeline_config.workspace.to_display_dict()
+    payload["curated_storage"] = pipeline_config.curated_storage.to_display_dict()
+    payload["report_request"] = pipeline_config.report_config.to_display_dict()
+    payload["site_request"] = pipeline_config.site_config.to_display_dict()
+    return payload, exit_code
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the current Phase 1, Phase 2, and Phase 3 CLI commands."""
+    """Run the current Phase 1-4 CLI commands."""
 
     parser = build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
@@ -377,6 +453,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "site":
         payload, exit_code = execute_site(args)
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return exit_code
+
+    if args.command == "pipeline":
+        payload, exit_code = execute_pipeline(args)
         print(json.dumps(payload, indent=2, sort_keys=True))
         return exit_code
 

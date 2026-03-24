@@ -1,6 +1,12 @@
-"""Configuration models for upstream workspace discovery, curation, reporting, and site generation."""
+"""Configuration models for upstream workspace discovery, curation, reporting, site generation, and automation."""
 
 from mexico_linkedin_jobs_portfolio.config.curated import CuratedStorageConfig
+from mexico_linkedin_jobs_portfolio.config.pipeline import (
+    PIPELINE_CADENCES,
+    PIPELINE_LOCALES,
+    PipelineArtifactConfig,
+    PipelineConfig,
+)
 from mexico_linkedin_jobs_portfolio.config.reporting import (
     OPENAI_API_KEY_ENV,
     OPENAI_BASE_URL_ENV,
@@ -25,7 +31,11 @@ __all__ = [
     "OPENAI_API_KEY_ENV",
     "OPENAI_BASE_URL_ENV",
     "OPENAI_MODEL_ENV",
+    "PIPELINE_CADENCES",
+    "PIPELINE_LOCALES",
     "PUBLIC_KEY_SALT_ENV",
+    "PipelineArtifactConfig",
+    "PipelineConfig",
     "REPORT_CADENCES",
     "REPORT_LOCALES",
     "SITE_LOCALES",

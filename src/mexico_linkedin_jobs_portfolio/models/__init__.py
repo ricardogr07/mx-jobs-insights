@@ -7,6 +7,7 @@ from mexico_linkedin_jobs_portfolio.models.ingestion import (
     IngestionRunSummary,
     WorkspaceValidationResult,
 )
+from mexico_linkedin_jobs_portfolio.models.pipeline import PipelineRunSummary
 from mexico_linkedin_jobs_portfolio.models.reporting import (
     DimensionCount,
     GeneratedNarrative,
@@ -34,6 +35,7 @@ __all__ = [
     "GeneratedNarrative",
     "IngestionRunSummary",
     "LatestJobRecord",
+    "PipelineRunSummary",
     "PeriodWindow",
     "PublicJobRecord",
     "ReportArtifacts",
