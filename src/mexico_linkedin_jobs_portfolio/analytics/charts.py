@@ -1,4 +1,4 @@
-"""Chart generation for report visualizations using Plotly."""
+"""Chart generation for report visualizations using Plotly and Folium."""
 
 from __future__ import annotations
 
@@ -9,6 +9,30 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from mexico_linkedin_jobs_portfolio.models import DimensionCount, ReportMetrics
+
+# Mexican city coordinates (latitude, longitude) for mapping
+_CITY_COORDINATES = {
+    "Mexico City": (19.4326, -99.1332),
+    "Monterrey": (25.6866, -100.3161),
+    "Guadalajara": (20.6596, -103.3496),
+    "Cancún": (21.1629, -87.0739),
+    "Playa del Carmen": (20.6379, -87.0739),
+    "Querétaro": (20.5890, -100.4900),
+    "Puebla": (19.0327, -98.2349),
+    "León": (21.1344, -101.6821),
+    "Tijuana": (32.5149, -117.0382),
+    "Mérida": (20.9674, -89.6238),
+    "Toluca": (19.2826, -99.6589),
+    "Hermosillo": (29.0729, -110.9559),
+    "Cuernavaca": (18.9186, -99.2381),
+    "Chihuahua": (28.6353, -106.2688),
+    "Culiacán": (24.8136, -107.3937),
+    "Durango": (24.0277, -104.6532),
+    "Saltillo": (25.4267, -101.0081),
+    "San Luis Potosí": (22.1505, -100.9789),
+    "Aguascalientes": (21.8853, -102.2917),
+    "Torreón": (25.5428, -103.4181),
+}
 
 
 def figure_to_base64_png(fig: go.Figure, width: int = 1000, height: int = 600) -> str:
@@ -295,6 +319,68 @@ def create_seniority_skills_heatmap(metrics: ReportMetrics, locale: str = "en") 
         ],
     )
     return fig
+
+
+def create_jobs_distribution_map(metrics: ReportMetrics, locale: str = "en") -> str:
+    """Create interactive folium map showing job distribution by city.
+    
+    Returns HTML string that can be embedded directly in reports.
+    """
+    try:
+        import folium
+    except ImportError:
+        return ""  # Folium not installed, return empty
+    
+    # Mexico center coordinates
+    mexico_center = [23.0, -102.0]
+    
+    # Create base map with CartoDB tileset (lighter than default)
+    map_obj = folium.Map(
+        location=mexico_center,
+        zoom_start=5,
+        tiles="CartoDB positron",
+        prefer_canvas=True,
+    )
+    
+    # Get top cities and add circle markers
+    top_cities = metrics.city_counts[:10]
+    max_count = max((c.count for c in top_cities), default=1)
+    
+    for city_data in top_cities:
+        if city_data.label in _CITY_COORDINATES:
+            lat, lon = _CITY_COORDINATES[city_data.label]
+            
+            # Radius based on job count (scaled 5-25px)
+            radius = 5 + (city_data.count / max_count) * 20
+            
+            # Color intensity based on job count
+            intensity = min(255, int((city_data.count / max_count) * 255))
+            color = f"#{intensity:02x}63c0"  # Purple-ish gradient
+            
+            # Add marker with city info
+            popup_text = f"<b>{city_data.label}</b><br>Jobs: {city_data.count}"
+            if locale == "es":
+                popup_text = f"<b>{city_data.label}</b><br>Empleos: {city_data.count}"
+            
+            folium.CircleMarker(
+                location=[lat, lon],
+                radius=radius,
+                popup=folium.Popup(popup_text, max_width=200),
+                color=color,
+                fill=True,
+                fillColor=color,
+                fillOpacity=0.7,
+                weight=2,
+            ).add_to(map_obj)
+    
+    # Convert to HTML string (self-contained with all CSS/JS)
+    try:
+        html_output = map_obj._repr_html_()
+        if isinstance(html_output, bytes):
+            return html_output.decode("utf-8")
+        return html_output
+    except Exception:
+        return ""
 
 
 def create_all_charts(metrics: ReportMetrics, locale: str = "en") -> dict[str, go.Figure]:

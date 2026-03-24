@@ -148,6 +148,7 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
     
     # Try to generate charts if plotly is available
     charts_html = _render_charts_section(metrics, locale)
+    maps_html = _render_maps_section(metrics, locale)
     
     # Build dimension sections
     sections = [
@@ -182,8 +183,7 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
             "  </header>",
             '  <nav class="report-nav">',
             '    <a href="#overview">Overview</a> | ',
-            '    <a href="#charts">Charts</a> | ',
-            '    <a href="#details">Details</a>',
+            '    <a href="#charts">Charts</a> | ',            '    <a href="#maps">Maps</a> | ',            '    <a href="#details">Details</a>',
             "  </nav>",
             '  <main class="report-content">',
             '    <section id="overview" class="section-overview">',
@@ -200,6 +200,7 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
             "      </div>",
             "    </section>",
             charts_html,
+            maps_html,
             '    <section id="details" class="section-details">',
             '      <h2 style="margin-top: 2rem;">Data Breakdown</h2>',
             *sections,
@@ -411,8 +412,79 @@ def _get_css_styles() -> str:
             margin-top: 2rem;
         }
         
+        .section-maps {
+            background: linear-gradient(135deg, #f5f7fa 0%, #f9fafb 100%);
+        }
+        
+        .maps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .map-container-wrapper {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid #667eea;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            min-height: 550px;
+        }
+        
+        .map-container-wrapper:hover {
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .map-canvas {
+            flex: 1;
+            min-height: 500px;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .map-canvas .leaflet-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+        
+        .map-canvas .leaflet-control {
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        .map-canvas .leaflet-control-zoom a {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .map-canvas .leaflet-control-zoom a:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .map-description {
+            font-size: 0.95rem;
+            color: #666;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        
         @media (max-width: 768px) {
             header h1 { font-size: 1.8rem; }
+            .maps-grid { grid-template-columns: 1fr; }
+            .map-canvas { min-height: 400px; }
+            .map-container-wrapper { min-height: 450px; }
             h2 { font-size: 1.4rem; }
             .charts-grid { grid-template-columns: 1fr; }
             nav a { margin: 0 0.5rem; font-size: 0.95rem; }
@@ -487,6 +559,55 @@ def _render_charts_section(metrics: ReportMetrics, locale: str) -> str:
         )
     except Exception:
         # If any error, just skip charts section
+        return ""
+
+
+def _render_maps_section(metrics: ReportMetrics, locale: str) -> str:
+    """Generate HTML section with embedded job distribution map."""
+    try:
+        from mexico_linkedin_jobs_portfolio.analytics.charts import (
+            create_jobs_distribution_map,
+        )
+    except ImportError:
+        # Folium not available, skip maps
+        return ""
+    
+    map_labels = {
+        "en": {
+            "section_title": "Job Distribution Map",
+            "map_description": "Interactive map showing job distribution across Mexican cities",
+        },
+        "es": {
+            "section_title": "Mapa de Distribución de Empleos",
+            "map_description": "Mapa interactivo mostrando la distribución de empleos en ciudades mexicanas",
+        },
+    }
+    
+    labels = map_labels.get(locale, map_labels["en"])
+    
+    try:
+        map_html = create_jobs_distribution_map(metrics, locale)
+        if not map_html:
+            return ""
+        
+        # Wrap folium map HTML in container div with proper styling
+        return "\n".join(
+            [
+                '    <section id="maps" class="section-maps">',
+                f"      <h2>{escape(labels['section_title'])}</h2>",
+                f"      <p class=\"map-description\">{escape(labels['map_description'])}</p>",
+                '      <div class="maps-grid">',
+                '        <div class="map-container-wrapper">',
+                '          <div class="map-canvas">',
+                map_html,
+                "          </div>",
+                "        </div>",
+                "      </div>",
+                "    </section>",
+            ]
+        )
+    except Exception:
+        # If any error, just skip maps section
         return ""
 
 
