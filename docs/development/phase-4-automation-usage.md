@@ -72,7 +72,7 @@ What the non-dry-run pipeline does:
 
 ## GitHub Actions Contract
 
-The orchestrator workflow is `.github/workflows/phase4-automation.yml`.
+The orchestrator workflow is `.github/workflows/publish-portfolio-site.yml`, displayed in GitHub Actions as `Publish Portfolio Site`.
 
 It:
 
@@ -82,6 +82,7 @@ It:
 - runs the `pipeline` CLI with `--upstream-root LinkedInWebScraper`
 - uploads the built `site/` directory as the Pages artifact
 - deploys GitHub Pages from that artifact only
+- writes a GitHub Actions job summary with cadence, step outcomes, and the public Pages link
 - uploads a separate 14-day diagnostic artifact with public-safe run summaries and report metadata
 
 Required GitHub configuration:
@@ -118,5 +119,4 @@ Forbidden automation artifacts:
 - Parquet sidecars
 - private Streamlit drill-down data
 - raw upstream private fields outside the approved public/report artifacts
-
 

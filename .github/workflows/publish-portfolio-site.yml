@@ -1,4 +1,4 @@
-name: Phase 4 Automation
+name: Publish Portfolio Site
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ on:
     - cron: "0 15 1 * *"
 
 concurrency:
-  group: phase4-automation
+  group: publish-portfolio-site
   cancel-in-progress: false
 
 permissions:
@@ -40,12 +40,15 @@ jobs:
       MX_JOBS_OPENAI_MODEL: ${{ vars.MX_JOBS_OPENAI_MODEL }}
       MX_JOBS_PUBLIC_KEY_SALT: ${{ secrets.MX_JOBS_PUBLIC_KEY_SALT }}
       MX_JOBS_OPENAI_BASE_URL: ${{ vars.MX_JOBS_OPENAI_BASE_URL }}
+      PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
 
     steps:
       - name: Checkout this repository
+        id: checkout_repo
         uses: actions/checkout@v4
 
       - name: Checkout upstream workspace
+        id: checkout_upstream
         uses: actions/checkout@v4
         with:
           repository: ricardogr07/LinkedInWebScraper
@@ -53,14 +56,17 @@ jobs:
           path: LinkedInWebScraper
 
       - name: Set up Python
+        id: setup_python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install project dependencies
+        id: install
         run: python -m pip install -e ".[dev]"
 
       - name: Resolve workflow_dispatch inputs
+        id: resolve_dispatch
         if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
@@ -72,6 +78,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Resolve scheduled inputs
+        id: resolve_schedule
         if: github.event_name == 'schedule'
         shell: bash
         run: |
@@ -95,6 +102,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Run pipeline orchestration
+        id: run_pipeline
         shell: bash
         run: |
           set -euo pipefail
@@ -114,6 +122,7 @@ jobs:
           python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main "${args[@]}"
 
       - name: Prepare diagnostic artifacts
+        id: prepare_diagnostics
         shell: bash
         run: |
           set -euo pipefail
@@ -133,18 +142,42 @@ jobs:
           done < <(find artifacts/reports -type f \( -name 'run_summary.json' -o -name 'metrics.json' \) | sort)
 
       - name: Upload diagnostic artifact
+        id: upload_diagnostics
         uses: actions/upload-artifact@v4
         with:
-          name: phase4-diagnostics
+          name: publish-portfolio-diagnostics
           path: artifacts/diagnostics
           retention-days: 14
 
       - name: Upload GitHub Pages artifact
+        id: upload_pages_artifact
         if: github.event_name == 'schedule' || inputs.deploy_pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
       - name: Deploy GitHub Pages
+        id: deploy_pages
         if: github.event_name == 'schedule' || inputs.deploy_pages
         uses: actions/deploy-pages@v4
+
+      - name: Write job summary
+        if: always()
+        shell: bash
+        run: |
+          cadence="${PIPELINE_CADENCE:-unknown}"
+          as_of_date="${PIPELINE_AS_OF_DATE:-latest-completed-period}"
+          deploy_requested="${DEPLOY_PAGES:-false}"
+          {
+            echo "# Publish summary"
+            echo
+            echo "- Trigger: \`${{ github.event_name }}\`"
+            echo "- Cadence: \`${cadence}\`"
+            echo "- As of date: \`${as_of_date}\`"
+            echo "- Deploy requested: \`${deploy_requested}\`"
+            echo "- Pipeline: \`${{ steps.run_pipeline.outcome }}\`"
+            echo "- Diagnostics artifact: \`${{ steps.upload_diagnostics.outcome }}\`"
+            echo "- Pages artifact: \`${{ steps.upload_pages_artifact.outcome }}\`"
+            echo "- Pages deploy: \`${{ steps.deploy_pages.outcome }}\`"
+            echo "- Public site: [mx-jobs-insights](${PAGES_URL})"
+          } >> "$GITHUB_STEP_SUMMARY"
