@@ -1,0 +1,150 @@
+name: Phase 4 Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      cadence:
+        description: Publish cadence to run through the automation pipeline.
+        required: true
+        type: choice
+        options:
+          - weekly
+          - monthly
+      as_of_date:
+        description: Optional YYYY-MM-DD reference date for the pipeline run.
+        required: false
+        type: string
+      deploy_pages:
+        description: Upload and deploy GitHub Pages when true.
+        required: true
+        type: boolean
+        default: true
+  schedule:
+    - cron: "0 14 * * 1"
+    - cron: "0 15 1 * *"
+
+concurrency:
+  group: phase4-automation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  automation:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      MX_JOBS_OPENAI_MODEL: ${{ vars.MX_JOBS_OPENAI_MODEL }}
+      MX_JOBS_PUBLIC_KEY_SALT: ${{ secrets.MX_JOBS_PUBLIC_KEY_SALT }}
+      MX_JOBS_OPENAI_BASE_URL: ${{ vars.MX_JOBS_OPENAI_BASE_URL }}
+
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Checkout upstream workspace
+        uses: actions/checkout@v4
+        with:
+          repository: ricardogr07/LinkedInWebScraper
+          ref: data
+          path: LinkedInWebScraper
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install project dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Resolve workflow_dispatch inputs
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "PIPELINE_CADENCE=${{ inputs.cadence }}"
+            echo "PIPELINE_AS_OF_DATE=${{ inputs.as_of_date }}"
+            echo "DEPLOY_PAGES=${{ inputs.deploy_pages }}"
+          } >> "$GITHUB_ENV"
+
+      - name: Resolve scheduled inputs
+        if: github.event_name == 'schedule'
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ github.event.schedule }}" in
+            "0 14 * * 1")
+              cadence="weekly"
+              ;;
+            "0 15 1 * *")
+              cadence="monthly"
+              ;;
+            *)
+              echo "Unsupported schedule: ${{ github.event.schedule }}"
+              exit 1
+              ;;
+          esac
+          {
+            echo "PIPELINE_CADENCE=${cadence}"
+            echo "PIPELINE_AS_OF_DATE="
+            echo "DEPLOY_PAGES=true"
+          } >> "$GITHUB_ENV"
+
+      - name: Run pipeline orchestration
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(
+            pipeline
+            --cadence "${PIPELINE_CADENCE}"
+            --source auto
+            --upstream-root LinkedInWebScraper
+            --curated-root artifacts/curated
+            --report-root artifacts/reports
+            --docs-root docs
+            --locale all
+          )
+          if [[ -n "${PIPELINE_AS_OF_DATE:-}" ]]; then
+            args+=(--as-of "${PIPELINE_AS_OF_DATE}")
+          fi
+          python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main "${args[@]}"
+
+      - name: Prepare diagnostic artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          diagnostics_root="artifacts/diagnostics"
+          mkdir -p "${diagnostics_root}/reports"
+          if [[ -f artifacts/pipeline/run_summary.json ]]; then
+            cp artifacts/pipeline/run_summary.json "${diagnostics_root}/pipeline-run_summary.json"
+          fi
+          if [[ -f artifacts/site/run_summary.json ]]; then
+            cp artifacts/site/run_summary.json "${diagnostics_root}/site-run_summary.json"
+          fi
+          while IFS= read -r file; do
+            rel_path="${file#artifacts/reports/}"
+            target="${diagnostics_root}/reports/${rel_path}"
+            mkdir -p "$(dirname "${target}")"
+            cp "${file}" "${target}"
+          done < <(find artifacts/reports -type f \( -name 'run_summary.json' -o -name 'metrics.json' \) | sort)
+
+      - name: Upload diagnostic artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase4-diagnostics
+          path: artifacts/diagnostics
+          retention-days: 14
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name == 'schedule' || inputs.deploy_pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy GitHub Pages
+        if: github.event_name == 'schedule' || inputs.deploy_pages
+        uses: actions/deploy-pages@v4
