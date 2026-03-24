@@ -141,10 +141,15 @@ def render_markdown(metrics: ReportMetrics, narrative: GeneratedNarrative, local
 
 
 def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: str) -> str:
-    """Render one locale-specific standalone HTML snapshot."""
+    """Render one locale-specific standalone HTML snapshot with charts and improved styling."""
 
     text = _TEXT[locale]
     headline, bullets = narrative.for_locale(locale)
+    
+    # Try to generate charts if plotly is available
+    charts_html = _render_charts_section(metrics, locale)
+    
+    # Build dimension sections
     sections = [
         _render_html_list(text["cities"], metrics.city_counts, locale),
         _render_html_list(text["remote"], metrics.remote_type_counts, locale),
@@ -157,47 +162,332 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
         _render_html_list(text["companies"], metrics.top_company_counts, locale),
     ]
     bullet_html = "".join(f"<li>{escape(item)}</li>" for item in bullets)
+    
     return "\n".join(
         [
             "<!doctype html>",
             '<html lang="' + escape(locale) + '">',
             "<head>",
             '  <meta charset="utf-8">',
+            '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
             f"  <title>{escape(text['title'])}</title>",
             "  <style>",
-            "    body { font-family: Georgia, serif; margin: 2rem auto; max-width: 860px; line-height: 1.55; color: #1c1917; }",
-            "    h1, h2 { font-family: 'Trebuchet MS', sans-serif; }",
-            "    section { margin: 1.5rem 0; }",
-            "    ul { padding-left: 1.25rem; }",
-            "    .meta { color: #57534e; }",
+            _get_css_styles(),
             "  </style>",
             "</head>",
             "<body>",
-            f"  <h1>{escape(text['title'])}</h1>",
-            '  <section class="meta">',
-            f"    <p><strong>{escape(text['cadence'])}:</strong> {escape(text[metrics.period.cadence])}</p>",
-            f"    <p><strong>{escape(text['period'])}:</strong> {escape(_format_period_label(metrics, locale))}</p>",
-            f"    <p><strong>ID:</strong> {escape(metrics.period.period_id)}</p>",
-            f"    <p><strong>Range:</strong> {escape(metrics.period.start_date.isoformat())} to {escape(metrics.period.end_date.isoformat())}</p>",
-            "  </section>",
-            "  <section>",
-            f"    <h2>{escape(text['narrative'])}</h2>",
-            f"    <p>{escape(headline)}</p>",
-            f"    <ul>{bullet_html}</ul>",
-            "  </section>",
-            "  <section>",
-            f"    <h2>{escape(text['headline_metrics'])}</h2>",
-            "    <ul>",
-            f"      <li>{escape(text['distinct_jobs'])}: {metrics.job_count}</li>",
-            f"      <li>{escape(text['observations'])}: {metrics.observation_count}</li>",
-            f"      <li>{escape(text['source_runs'])}: {metrics.source_run_count}</li>",
-            "    </ul>",
-            "  </section>",
+            f"  <header class=\"report-header\">",
+            f"    <h1>{escape(text['title'])}</h1>",
+            f"    <p class=\"period-label\">{escape(_format_period_label(metrics, locale))}</p>",
+            "  </header>",
+            '  <nav class="report-nav">',
+            '    <a href="#overview">Overview</a> | ',
+            '    <a href="#charts">Charts</a> | ',
+            '    <a href="#details">Details</a>',
+            "  </nav>",
+            '  <main class="report-content">',
+            '    <section id="overview" class="section-overview">',
+            f"      <h2>{escape(text['narrative'])}</h2>",
+            f"      <p class=\"narrative-headline\">{escape(headline)}</p>",
+            f"      <ul class=\"narrative-bullets\">{bullet_html}</ul>",
+            "    </section>",
+            '    <section class="section-metrics">',
+            f"      <h2>{escape(text['headline_metrics'])}</h2>",
+            '      <div class="metrics-grid">',
+            f'        <div class="metric-card"><span class="metric-label">{escape(text["distinct_jobs"])}</span><span class="metric-value">{metrics.job_count}</span></div>',
+            f'        <div class="metric-card"><span class="metric-label">{escape(text["observations"])}</span><span class="metric-value">{metrics.observation_count}</span></div>',
+            f'        <div class="metric-card"><span class="metric-label">{escape(text["source_runs"])}</span><span class="metric-value">{metrics.source_run_count}</span></div>',
+            "      </div>",
+            "    </section>",
+            charts_html,
+            '    <section id="details" class="section-details">',
+            '      <h2 style="margin-top: 2rem;">Data Breakdown</h2>',
             *sections,
+            "    </section>",
+            '    <footer class="report-footer">',
+            f"      <p><small>Period ID: {escape(metrics.period.period_id)} | Range: {escape(metrics.period.start_date.isoformat())} to {escape(metrics.period.end_date.isoformat())}</small></p>",
+            "    </footer>",
+            "  </main>",
             "</body>",
             "</html>",
         ]
     )
+
+
+def _get_css_styles() -> str:
+    """Enhanced CSS styles for report layout."""
+    return """
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #f5f7fa 0%, #f9fafb 100%);
+            padding: 1rem;
+        }
+        
+        header.report-header {
+            text-align: center;
+            padding: 2rem 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .period-label {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 500;
+        }
+        
+        nav.report-nav {
+            text-align: center;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        nav a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            margin: 0 1rem;
+            transition: color 0.3s ease;
+        }
+        
+        nav a:hover { color: #764ba2; }
+        
+        main.report-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        
+        h2 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 1.2rem;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 0.7rem;
+        }
+        
+        .section-metrics {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.2);
+        }
+        
+        .metric-label {
+            display: block;
+            font-size: 0.85rem;
+            color: #7a8896;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .metric-value {
+            display: block;
+            font-size: 2rem;
+            color: #667eea;
+            font-weight: 700;
+        }
+        
+        .section-charts {
+            background: #fafbfc;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .chart-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 6px;
+        }
+        
+        .section-details ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .section-details li {
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .section-details li:last-child {
+            border-bottom: none;
+        }
+        
+        .section-details li:nth-child(odd) {
+            background: rgba(102, 126, 234, 0.02);
+            padding: 0.7rem 0.7rem;
+            border-radius: 4px;
+        }
+        
+        .narrative-headline {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        
+        .narrative-bullets {
+            list-style-position: inside;
+            margin-left: 1rem;
+        }
+        
+        .narrative-bullets li {
+            margin-bottom: 0.6rem;
+            line-height: 1.5;
+        }
+        
+        footer.report-footer {
+            text-align: center;
+            color: #7a8896;
+            font-size: 0.9rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e9ecef;
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.4rem; }
+            .charts-grid { grid-template-columns: 1fr; }
+            nav a { margin: 0 0.5rem; font-size: 0.95rem; }
+            .metrics-grid { grid-template-columns: 1fr; }
+        }
+"""
+
+
+def _render_charts_section(metrics: ReportMetrics, locale: str) -> str:
+    """Generate HTML section with embedded charts."""
+    try:
+        from mexico_linkedin_jobs_portfolio.analytics.charts import (
+            create_all_charts,
+            figure_to_base64_png,
+        )
+    except ImportError:
+        # Plotly not available, skip charts
+        return ""
+    
+    chart_labels = {
+        "en": {
+            "top_cities": "Top 10 Cities",
+            "seniority_dist": "Seniority Distribution",
+            "remote_dist": "Remote vs On-site",
+            "tech_stack": "Top Technologies",
+            "employment": "Employment Type",
+            "companies": "Top Hiring Companies",
+            "industries": "Top Industries",
+        },
+        "es": {
+            "top_cities": "Top 10 Ciudades",
+            "seniority_dist": "Distribución por Antigüedad",
+            "remote_dist": "Remoto vs Presencial",
+            "tech_stack": "Principales Tecnologías",
+            "employment": "Tipo de Empleador",
+            "companies": "Top Empresas Contratando",
+            "industries": "Top Industrias",
+        },
+    }
+    
+    labels = chart_labels.get(locale, chart_labels["en"])
+    
+    try:
+        charts = create_all_charts(metrics, locale)
+        chart_divs = []
+        
+        for chart_key, fig in charts.items():
+            try:
+                img_b64 = figure_to_base64_png(fig, width=950, height=600)
+                if img_b64:
+                    label = labels.get(chart_key, chart_key)
+                    chart_divs.append(
+                        f'    <div class="chart-container"><img src="{img_b64}" alt="{escape(label)}" title="{escape(label)}"></div>'
+                    )
+            except Exception:
+                # Skip chart if generation fails
+                pass
+        
+        if not chart_divs:
+            return ""
+        
+        section_title = "Visualizations" if locale == "en" else "Visualizaciones"
+        return "\n".join(
+            [
+                '    <section id="charts" class="section-charts">',
+                f"      <h2>{escape(section_title)}</h2>",
+                '      <div class="charts-grid">',
+                *chart_divs,
+                "      </div>",
+                "    </section>",
+            ]
+        )
+    except Exception:
+        # If any error, just skip charts section
+        return ""
 
 
 def _render_markdown_section(title: str, items: tuple[DimensionCount, ...], locale: str) -> list[str]:

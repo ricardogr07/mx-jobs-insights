@@ -48,6 +48,11 @@ docs = [
   "mkdocs>=1.6.1",
   "mkdocs-material>=9.5.34",
 ]
+viz = [
+  "plotly>=5.24.0",
+  "seaborn>=0.13.0",
+  "folium>=0.14.0",
+]
 
 [tool.setuptools]
 include-package-data = true

@@ -14,13 +14,46 @@ from mexico_linkedin_jobs_portfolio.analytics.periods import (
     resolve_reference_date,
 )
 
-__all__ = [
-    "CuratedDataset",
-    "CuratedDatasetReader",
-    "JoinedObservationRecord",
-    "MetricsBuildResult",
-    "build_report_metrics",
-    "resolve_closed_period",
-    "resolve_reference_date",
-]
+try:
+    from mexico_linkedin_jobs_portfolio.analytics.charts import (
+        create_all_charts,
+        create_employment_type_chart,
+        create_industry_distribution_chart,
+        create_remote_distribution_chart,
+        create_seniority_distribution_chart,
+        create_top_cities_chart,
+        create_top_companies_chart,
+        create_top_tech_stack_chart,
+        figure_to_base64_png,
+    )
+
+    __all__ = [
+        "CuratedDataset",
+        "CuratedDatasetReader",
+        "JoinedObservationRecord",
+        "MetricsBuildResult",
+        "build_report_metrics",
+        "resolve_closed_period",
+        "resolve_reference_date",
+        "create_all_charts",
+        "create_employment_type_chart",
+        "create_industry_distribution_chart",
+        "create_remote_distribution_chart",
+        "create_seniority_distribution_chart",
+        "create_top_cities_chart",
+        "create_top_companies_chart",
+        "create_top_tech_stack_chart",
+        "figure_to_base64_png",
+    ]
+except ImportError:
+    # Plotly not installed, charts not available
+    __all__ = [
+        "CuratedDataset",
+        "CuratedDatasetReader",
+        "JoinedObservationRecord",
+        "MetricsBuildResult",
+        "build_report_metrics",
+        "resolve_closed_period",
+        "resolve_reference_date",
+    ]
 
