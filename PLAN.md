@@ -446,9 +446,105 @@
 
 ## Phase 5: Cloud Expansion
 
-- Keep source, curation, analytics, report rendering, and publishing abstracted from deployment targets.
-- Prepare for later Cloud Run/GCS/BigQuery/Terraform expansion without changing core pipeline logic.
-- Do not add cloud-specific complexity before the GitHub-native workflow is stable.
+### Step 5.1: Phase-5 planning and cloud roles
+
+- Split Phase 5 into reviewed substeps and add Phase-5-specific subagent roles in `codex/config.toml` and `docs/codex/subagents.md`:
+  - `container_runtime`
+  - `cloud_artifact_sync`
+  - `warehouse_exports`
+  - `terraform_foundation`
+  - `cloud_release_validation`
+- Add planned commands for:
+  - `docker build -t mx-jobs-insights-pipeline .`
+  - `terraform -chdir=infra/terraform fmt -check`
+  - `terraform -chdir=infra/terraform validate`
+  - `gcloud run jobs execute mx-jobs-insights-pipeline --region <region>`
+- Update `PLAN.md` support sections so Public Interfaces, Subagent Plan, Test Plan, and Assumptions reflect the cloud phase before implementation starts.
+
+### Step 5.2: Container runtime contract
+
+- Package one deployment-neutral container image around the existing `pipeline` CLI.
+- The container entrypoint must execute `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline ...` rather than introducing a second orchestration path.
+- Keep local workspace semantics inside the container so source validation, curation, reporting, site generation, and docs validation behave the same in local, GitHub Actions, and cloud runs.
+- Define runtime inputs for cloud execution:
+  - `GOOGLE_CLOUD_PROJECT`
+  - `MX_JOBS_GCP_REGION`
+  - `MX_JOBS_GCS_BUCKET`
+  - `MX_JOBS_BIGQUERY_PRIVATE_DATASET`
+  - `MX_JOBS_BIGQUERY_PUBLIC_DATASET`
+  - optional `MX_JOBS_GCS_PREFIX`
+
+### Step 5.3: Cloud artifact sync contract
+
+- Add a post-pipeline cloud sync layer that mirrors reviewed durable outputs from the local workspace to Google Cloud Storage.
+- GCS object layout should mirror the existing filesystem contract:
+  - `curated/...`
+  - `reports/...`
+  - `site/...`
+  - `diagnostics/...`
+- Keep GitHub Pages as the current public-serving path during Phase 5; GCS copies are for retention, interoperability, and later hosting cutover work.
+- Cloud sync must fail closed when bucket configuration or object-prefix policy is missing or invalid.
+
+### Step 5.4: BigQuery export contract
+
+- Add BigQuery as a downstream analytical mirror, not as the source of truth.
+- Export canonical private tables from curated outputs and public-safe report tables from report outputs.
+- Keep the boundary explicit:
+  - private dataset for curated internal tables such as `job_observations`, `job_entities`, and pipeline or report run summaries
+  - public dataset for de-identified or public-safe tables such as `public_jobs` and aggregate report metrics
+- Do not export raw OpenAI payloads, raw private drill-down fields, or any row-level data that violates the existing public data policy.
+
+### Step 5.5: Terraform foundation and environment layout
+
+- Add an `infra/terraform/` root for GCP infrastructure as code.
+- Manage the minimum Phase 5 cloud footprint through Terraform:
+  - Artifact Registry
+  - Cloud Storage buckets
+  - BigQuery datasets
+  - Cloud Run Job
+  - Cloud Scheduler jobs
+  - service accounts and IAM
+  - Secret Manager bindings or references
+- Start with a dev-first environment layout; production hardening and multi-environment promotion can follow after the first cloud path is stable.
+
+### Step 5.6: Cloud Run job and release workflow
+
+- Run the containerized `pipeline` from Cloud Run Jobs instead of adding a second compute model.
+- Add a release path that can:
+  - build and publish the container image
+  - deploy or update the Cloud Run Job definition
+  - wire weekly and monthly Cloud Scheduler triggers
+  - keep GitHub Pages publication and the current GitHub-native workflow intact until an explicit cutover step lands later
+- Prefer GitHub OIDC or Workload Identity Federation over long-lived service-account keys.
+
+### Step 5.7: Cloud validation, docs, and runbooks
+
+- Add tests and docs for container build, cloud env config, GCS path mapping, BigQuery schema and export shaping, Terraform validation, and Cloud Run Job contracts.
+- Add Phase 5 usage docs covering:
+  - local container smoke commands
+  - required GCP variables, secrets, and auth expectations
+  - Terraform validate, plan, and apply flow
+  - image release and Cloud Run execution flow
+  - public and private data boundaries in GCS and BigQuery
+- Keep the command catalog aligned as each reviewed step lands.
+
+### Step 5.8: Review boundary
+
+- Phase 5 closes once:
+  - the containerized `pipeline` path passes locally
+  - Terraform validation and at least a dev plan pass cleanly
+  - Cloud Run Job definition, Scheduler contracts, and cloud auth wiring are reviewed
+  - GCS and BigQuery targets receive the intended bounded outputs
+  - GitHub Pages publication still works and no cloud cutover regresses the current public site
+- Custom domains, Cloud CDN, production-grade observability, and broader warehouse or BI work remain later-phase follow-ups.
+
+## Phase-5 Commit Boundaries
+- Commit 1: Phase-5 plan/docs/subagent-role expansion
+- Commit 2: container runtime contract and cloud env configuration
+- Commit 3: GCS sync and BigQuery export contracts
+- Commit 4: Terraform foundation and GCP resource layout
+- Commit 5: Cloud Run Job release path and scheduler wiring
+- Commit 6: Phase-5 tests, docs, and runbooks
 
 ## Public Interfaces and Contracts
 
@@ -489,8 +585,16 @@
 - Phase 4 automation runtime:
   - required for automated published runs: `OPENAI_API_KEY`, `MX_JOBS_OPENAI_MODEL`, `MX_JOBS_PUBLIC_KEY_SALT`
   - optional override: `MX_JOBS_OPENAI_BASE_URL`
+- Phase 5 container and cloud commands:
+  - `docker build -t mx-jobs-insights-pipeline .`
+  - `terraform -chdir=infra/terraform validate`
+  - `gcloud run jobs execute mx-jobs-insights-pipeline --region <region>`
+- Phase 5 cloud runtime:
+  - required for cloud execution: `GOOGLE_CLOUD_PROJECT`, `MX_JOBS_GCP_REGION`, `MX_JOBS_GCS_BUCKET`, `MX_JOBS_BIGQUERY_PRIVATE_DATASET`, `MX_JOBS_BIGQUERY_PUBLIC_DATASET`
+  - optional override: `MX_JOBS_GCS_PREFIX`
+  - auth: local ADC for developer runs, and workload identity or service-account bindings in cloud
 - Planned durable outputs:
-  - curated DuckDB/Parquet
+  - curated DuckDB and Parquet
   - `metrics.json`
   - bilingual Markdown reports
   - bilingual HTML report snapshots
@@ -503,6 +607,9 @@
   - `artifacts/site/run_summary.json`
   - `artifacts/pipeline/run_summary.json`
   - GitHub Pages site assets
+  - GCS mirrors for curated, reports, site, and diagnostics outputs
+  - BigQuery private dataset tables
+  - BigQuery public dataset tables
 
 ## Subagent Plan
 
@@ -523,7 +630,11 @@
   - `pipeline_orchestrator`: automation CLI orchestration, cross-phase pipeline summaries, and pipeline tests
   - `workflow_release`: GitHub Actions workflows, Pages deploy, artifact retention, and upstream checkout contracts
   - `automation_validation`: workflow tests, automation docs, and runtime-secret guidance
-  - `automation_release`: GitHub Actions and deployment contracts
+  - `container_runtime`: container image, runtime env contract, and deployment-neutral entrypoints
+  - `cloud_artifact_sync`: GCS object layout, sync safety, retention, and artifact metadata
+  - `warehouse_exports`: BigQuery schema contracts, export shaping, and public/private dataset boundaries
+  - `terraform_foundation`: Terraform roots, GCP resources, IAM, and environment layout
+  - `cloud_release_validation`: cloud release workflows, auth wiring, runbooks, and Phase 5 validation docs
 - Subagents never own integration. The main agent merges results, validates behavior, and waits for approval before any commit.
 
 ## Test Plan
@@ -531,7 +642,7 @@
 - Phase 0:
   - folder structure exists
   - docs build can see internal Codex pages
-  - repo hygiene/ignore rules match planned outputs
+  - repo hygiene and ignore rules match planned outputs
 - Phase 1:
   - source mode resolution tests
   - local workspace path validation tests
@@ -550,8 +661,8 @@
   - closed-period resolution tests
   - aggregate KPI tests
   - public CSV policy tests
-  - Markdown/HTML snapshot tests
-  - AI prompt/input shaping tests
+  - Markdown and HTML snapshot tests
+  - AI prompt and input shaping tests
   - CLI smoke checks for `report --dry-run` and non-dry-run report writes
 - Phase 3:
   - site index tests for weekly and monthly archive discovery, latest-period resolution, and empty-archive handling
@@ -564,18 +675,24 @@
   - fixture-backed weekly and monthly pipeline tests
   - workflow YAML trigger, input, permission, concurrency, and deploy-gating tests
   - strict MkDocs build validation from pipeline-produced docs output
-  - scheduled/manual orchestration smoke tests
+  - scheduled or manual orchestration smoke tests
 - Phase 5:
-  - container/config smoke tests only; no cloud infra rollout until later
+  - container build and entrypoint smoke tests
+  - cloud env parsing and validation tests
+  - GCS object-selection and path-mapping tests
+  - BigQuery schema and export contract tests
+  - Terraform fmt, validate, and static plan checks
+  - Cloud Run Job and Cloud Scheduler contract tests
+  - release workflow auth and deploy-gating tests
 
 ## Assumptions and Defaults
 
 - Phase 1 starts with both adapter shells scaffolded, but SQLite becomes the first fully working ingestion path.
 - Local development uses a configurable local upstream path first; managed git-sync automation is deferred.
-- DuckDB is the curated source of truth; Parquet is a sidecar/export format.
-- CLI shells for `ingest` and `curate` land in Phase 1 even before the full analytics/report stack exists.
+- DuckDB is the curated source of truth; Parquet is a sidecar or export format.
+- CLI shells for `ingest` and `curate` land in Phase 1 even before the full analytics and report stack exists.
 - Public filtering, dashboard logic, and GitHub automation remain out of scope for Phase 1.
-- Phase 2 report generation reads curated DuckDB/Parquet outputs, resolves closed periods from `observed_at`, and fails closed if required OpenAI/public-key environment variables are missing.
+- Phase 2 report generation reads curated DuckDB or Parquet outputs, resolves closed periods from `observed_at`, and fails closed if required OpenAI or public-key environment variables are missing.
 - Phase 3 is Pages-first, with the public MkDocs nav becoming the primary site IA while current internal docs remain under Development.
 - Generated public site source lives in tracked `docs/public/`.
 - Streamlit ships as an `app` extra plus local `dev` support, defaults to public-safe summaries, and exposes optional clearly labeled local-only private drill-down panes.
@@ -586,5 +703,8 @@
 - Scheduled automation uses explicit weekly and monthly cron entries, not a daily scheduler.
 - OpenAI remains required for published automated reports; missing runtime secrets fail the automation run.
 - The upstream repo is read-only in automation and is checked out fresh on every run from `ricardogr07/LinkedInWebScraper@data`.
-
-
+- Phase 5 expands on GCP first, using Cloud Run Jobs, Cloud Storage, BigQuery, and Terraform.
+- The `pipeline` CLI remains the single orchestration entrypoint across local, GitHub, and cloud execution paths.
+- GitHub Pages remains the active public-site serving path until a later explicit hosting cutover is reviewed.
+- BigQuery is a downstream mirror with explicit private and public dataset boundaries; it does not replace the local curated store as the source of truth.
+- Cloud auth uses local ADC for developer validation and workload identity or service-account bindings in cloud, not committed keys.

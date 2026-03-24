@@ -119,6 +119,31 @@ Use subagents to parallelize well-scoped work, not to outsource integration deci
 - Write scope: `.github/`, release docs, runtime docs.
 - Use when: adding CI/CD, schedules, Pages deploys, or future release automation.
 
+### `container_runtime`
+- Purpose: own the container image, deployment-neutral pipeline entrypoint, and cloud runtime packaging.
+- Write scope: `infra/`, `Dockerfile`, `.dockerignore`, `docs/development`, `docs/codex`.
+- Use when: building the Phase 5 container contract or packaging the pipeline for cloud execution.
+
+### `cloud_artifact_sync`
+- Purpose: own GCS object layout, sync safety, and cloud artifact publication contracts.
+- Write scope: `src/mexico_linkedin_jobs_portfolio`, `tests`, `docs/development`.
+- Use when: adding cloud storage mirroring for curated, report, site, or diagnostics outputs.
+
+### `warehouse_exports`
+- Purpose: own BigQuery export contracts and public/private dataset boundaries.
+- Write scope: `src/mexico_linkedin_jobs_portfolio`, `tests`, `docs/development`.
+- Use when: defining or validating BigQuery delivery from curated and report artifacts.
+
+### `terraform_foundation`
+- Purpose: own Terraform roots, GCP resource layout, IAM, and environment wiring.
+- Write scope: `infra/`, `docs/development`.
+- Use when: adding the Phase 5 infrastructure baseline or validation commands.
+
+### `cloud_release_validation`
+- Purpose: own cloud release docs, runbooks, and validation coverage for the Phase 5 delivery path.
+- Write scope: `tests`, `docs/development`, `docs/codex`, `codex/config.toml`.
+- Use when: validating the cloud release path without rewriting container, Terraform, or delivery code.
+
 ## Phase-1 Specialization Rule
 - Phase 1 uses the specialized roles above so workspace, adapter, curation, and fixture work can run in parallel without overlapping the durable contract-doc ownership of `data_contracts`.
 - SQLite and CSV workers may proceed in parallel only after the shared interfaces and workspace contract are stable.
@@ -137,9 +162,16 @@ Use subagents to parallelize well-scoped work, not to outsource integration deci
 - Workflow-release work should stay separate from pipeline-core code so GitHub Actions policy changes do not rewrite orchestration logic.
 - Automation validation should focus on workflow assertions, docs, and runtime contracts after the pipeline and workflow lanes have stabilized.
 
+## Phase-5 Specialization Rule
+- Phase 5 uses the cloud roles above so container packaging, artifact sync, warehouse export, Terraform, and validation work can move in parallel without overlapping write scopes.
+- The main agent owns the cloud contract, final integration, and the reviewed commit boundaries.
+- Container and Terraform work should stay separate so deployment packaging does not rewrite cloud infrastructure decisions.
+- Cloud validation should focus on release docs, runbooks, and runtime contracts after the infrastructure and delivery lanes have stabilized.
+
 ## Integration Responsibility
 - Main agent validates the final step state before asking for review.
 - Main agent decides when a step is ready for approval and possible commit.
 - Subagents should return changed files, assumptions, and validation notes, not broad recaps.
+
 
 

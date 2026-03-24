@@ -23,6 +23,11 @@ command = "python -m pip install -e .[dev]"
 purpose = "Install the local development toolchain for lint, docs, test, and build work."
 status = "ready"
 
+[commands.bootstrap_cloud]
+command = "python -m pip install -e .[dev,cloud]"
+purpose = "Install the local development toolchain plus optional Google Cloud clients for Phase 5 validation."
+status = "ready"
+
 [commands.status]
 command = "git status --short"
 purpose = "Inspect the current worktree before and after a reviewed step."
@@ -128,6 +133,26 @@ command = "streamlit run src/mexico_linkedin_jobs_portfolio/interfaces/streamlit
 purpose = "Launch the local-first Streamlit dashboard over curated and report artifacts."
 status = "ready"
 
+[commands.container_build_pipeline]
+command = "docker build -t mx-jobs-insights-pipeline ."
+purpose = "Build the deployment-neutral Phase 5 container image around the existing pipeline CLI."
+status = "ready"
+
+[commands.terraform_fmt_check]
+command = "terraform -chdir=infra/terraform fmt -check"
+purpose = "Check Terraform formatting for the Phase 5 cloud infrastructure root."
+status = "ready"
+
+[commands.terraform_validate]
+command = "terraform -chdir=infra/terraform validate"
+purpose = "Validate the Phase 5 Terraform configuration before planning or apply steps."
+status = "ready"
+
+[commands.gcloud_run_jobs_execute]
+command = "gcloud run jobs execute mx-jobs-insights-pipeline --region <region>"
+purpose = "Execute the containerized pipeline from Cloud Run Jobs during cloud validation."
+status = "ready"
+
 [integrations.openai_docs]
 kind = "mcp"
 status = "recommended"
@@ -203,6 +228,18 @@ required = ["OPENAI_API_KEY", "MX_JOBS_OPENAI_MODEL", "MX_JOBS_PUBLIC_KEY_SALT"]
 optional = ["MX_JOBS_OPENAI_BASE_URL"]
 status = "documented"
 
+[runtime_env.cloud]
+purpose = "Phase 5 cloud execution, artifact sync, and warehouse release config."
+required = [
+  "GOOGLE_CLOUD_PROJECT",
+  "MX_JOBS_GCP_REGION",
+  "MX_JOBS_GCS_BUCKET",
+  "MX_JOBS_BIGQUERY_PRIVATE_DATASET",
+  "MX_JOBS_BIGQUERY_PUBLIC_DATASET",
+]
+optional = ["MX_JOBS_GCS_PREFIX", "MX_JOBS_UPSTREAM_REPO_URL", "MX_JOBS_UPSTREAM_REF"]
+status = "documented"
+
 [subagents.analytics_reports]
 purpose = "Own KPI definitions, report rendering, publication filters, and narrative payload design."
 write_scope = "src/mexico_linkedin_jobs_portfolio/analytics, src/mexico_linkedin_jobs_portfolio/reporting, src/mexico_linkedin_jobs_portfolio/models, tests, docs/development"
@@ -252,6 +289,31 @@ use_when = "Building interactive exploration or static site presentation layers.
 purpose = "Own workflows, deployment contracts, and publication automation."
 write_scope = ".github/, release docs, runtime docs"
 use_when = "Adding schedules, CI/CD, deployment, or publishing automation."
+
+[subagents.container_runtime]
+purpose = "Own the container image, deployment-neutral pipeline entrypoint, and cloud runtime packaging."
+write_scope = "infra/, Dockerfile, .dockerignore, docs/development, docs/codex"
+use_when = "Building the Phase 5 container contract or packaging the pipeline for cloud execution."
+
+[subagents.cloud_artifact_sync]
+purpose = "Own GCS object layout, sync safety, and cloud artifact publication contracts."
+write_scope = "src/mexico_linkedin_jobs_portfolio, tests, docs/development"
+use_when = "Adding cloud storage mirroring for curated, report, site, or diagnostics outputs."
+
+[subagents.warehouse_exports]
+purpose = "Own BigQuery export contracts and public/private dataset boundaries."
+write_scope = "src/mexico_linkedin_jobs_portfolio, tests, docs/development"
+use_when = "Defining or validating BigQuery delivery from curated and report artifacts."
+
+[subagents.terraform_foundation]
+purpose = "Own Terraform roots, GCP resource layout, IAM, and environment wiring."
+write_scope = "infra/, docs/development"
+use_when = "Adding the Phase 5 infrastructure baseline or validation commands."
+
+[subagents.cloud_release_validation]
+purpose = "Own cloud release docs, runbooks, and validation coverage for the Phase 5 delivery path."
+write_scope = "tests, docs/development, docs/codex, codex/config.toml"
+use_when = "Validating the cloud release path without rewriting container, Terraform, or delivery code."
 
 [skills.current.openai_docs]
 status = "observed_builtin"
