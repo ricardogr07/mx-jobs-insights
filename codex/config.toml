@@ -98,6 +98,21 @@ command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report -
 purpose = "Write the monthly report artifacts, public CSV, and OpenAI narration when the runtime env is configured."
 status = "ready"
 
+[commands.site_dry_run]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main site --dry-run"
+purpose = "Resolve the public site index from completed report artifacts without writing MkDocs source pages."
+status = "ready"
+
+[commands.site_write]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main site"
+purpose = "Generate the public MkDocs source pages and copy public-safe report assets into the docs tree."
+status = "ready"
+
+[commands.streamlit_run_local]
+command = "streamlit run src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py"
+purpose = "Launch the local-first Streamlit dashboard over curated and report artifacts."
+status = "ready"
+
 [integrations.openai_docs]
 kind = "mcp"
 status = "recommended"
@@ -178,8 +193,28 @@ purpose = "Own KPI definitions, report rendering, publication filters, and narra
 write_scope = "src/mexico_linkedin_jobs_portfolio/analytics, src/mexico_linkedin_jobs_portfolio/reporting, src/mexico_linkedin_jobs_portfolio/models, tests, docs/development"
 use_when = "Building metrics, report rendering, public CSV filtering, or narrative generation layers."
 
+[subagents.site_generation_contracts]
+purpose = "Own the public site index, site-generation contracts, and site CLI-facing summary models."
+write_scope = "src/mexico_linkedin_jobs_portfolio/config, src/mexico_linkedin_jobs_portfolio/presentation, src/mexico_linkedin_jobs_portfolio/interfaces/cli, src/mexico_linkedin_jobs_portfolio/models, tests"
+use_when = "Building the Phase 3 site command and its shared artifact catalog."
+
+[subagents.pages_public_ia]
+purpose = "Own the public-first MkDocs information architecture and public-facing docs pages."
+write_scope = "docs/index.md, docs/development, mkdocs.yml"
+use_when = "Restructuring the public site navigation or adding public documentation pages."
+
+[subagents.streamlit_explorer]
+purpose = "Own the local Streamlit dashboard shell, loaders, and private drill-down UX."
+write_scope = "src/mexico_linkedin_jobs_portfolio/interfaces/streamlit, src/mexico_linkedin_jobs_portfolio/presentation, tests"
+use_when = "Building the local-only dashboard surface or its view-model helpers."
+
+[subagents.presentation_validation]
+purpose = "Own presentation smoke tests, docs validations, and public/private boundary checks."
+write_scope = "tests, docs/development, docs/codex, mkdocs.yml"
+use_when = "Validating the Phase 3 site and dashboard contract without changing core UI behavior."
+
 [subagents.dashboard_site]
-purpose = "Own Streamlit dashboard and public site UX work."
+purpose = "Own late-phase Streamlit dashboard and public site UX work when higher-level presentation changes are needed."
 write_scope = "app/, site templates, Pages docs"
 use_when = "Building interactive exploration or static site presentation layers."
 

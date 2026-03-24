@@ -74,8 +74,28 @@ Use subagents to parallelize well-scoped work, not to outsource integration deci
 - Write scope: analytics modules, report rendering modules, report docs.
 - Use when: implementing weekly/monthly metrics, summaries, or narrative generation.
 
+### `site_generation_contracts`
+- Purpose: own the public site index, site-generation contracts, and site CLI-facing summary models.
+- Write scope: config models, presentation loaders, CLI integration, site summary models, tests.
+- Use when: building the Phase 3 `site` command and its shared artifact catalog.
+
+### `pages_public_ia`
+- Purpose: own the public-first MkDocs information architecture and public-facing docs pages.
+- Write scope: `docs/index.md`, `docs/development/`, `mkdocs.yml`.
+- Use when: restructuring the public site navigation or adding public documentation pages.
+
+### `streamlit_explorer`
+- Purpose: own the local Streamlit dashboard shell, loaders, and private drill-down UX.
+- Write scope: Streamlit app code, presentation loaders, and app-scoped tests.
+- Use when: building the local-only dashboard surface or its view-model helpers.
+
+### `presentation_validation`
+- Purpose: own presentation smoke tests, docs validations, and public/private boundary checks.
+- Write scope: tests, `docs/development/`, `docs/codex/`, `mkdocs.yml`.
+- Use when: validating the Phase 3 site and dashboard contract without changing core UI behavior.
+
 ### `dashboard_site`
-- Purpose: own Streamlit dashboard and public site UX work.
+- Purpose: own late-phase Streamlit dashboard and public site UX work when higher-level presentation changes are needed.
 - Write scope: dashboard code, site templates, Pages-facing docs.
 - Use when: implementing data exploration UX or the public showcase site.
 
@@ -90,7 +110,14 @@ Use subagents to parallelize well-scoped work, not to outsource integration deci
 - Canonical curation work should stay behind a stable source adapter boundary so it does not have to reason about raw source-specific shapes.
 - Fixture and validation work should run alongside adapter implementation, not after all ingestion code is finished.
 
+## Phase-3 Specialization Rule
+- Phase 3 uses the presentation roles above so public site structure, Streamlit UX, and validation can move in parallel without overlapping write scopes.
+- The main agent owns integration, shared artifact contracts, and the final reviewed step boundaries.
+- Public-first MkDocs work should stay separate from the Streamlit app shell so docs navigation does not become coupled to dashboard implementation details.
+- Validation work should keep the public site, Streamlit app, and boundary rules aligned without rewriting the implementation lanes.
+
 ## Integration Responsibility
 - Main agent validates the final step state before asking for review.
 - Main agent decides when a step is ready for approval and possible commit.
 - Subagents should return changed files, assumptions, and validation notes, not broad recaps.
+

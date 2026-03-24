@@ -249,8 +249,89 @@
 
 ## Phase 3: Dashboard and Public Site
 
-- Build the local-first Streamlit dashboard over curated DuckDB/Parquet data.
-- Build the MkDocs Material Pages site with bilingual overview pages, report archive pages, and downloadable public CSV/report artifacts.
+### Step 3.1: Phase-3 planning and presentation roles
+
+- Split Phase 3 into reviewed substeps and add Phase-3-specific subagent roles in `codex/config.toml` and `docs/codex/subagents.md`:
+  - `site_generation_contracts`
+  - `pages_public_ia`
+  - `streamlit_explorer`
+  - `presentation_validation`
+- Add planned commands for `site --dry-run`, `site` write, `mkdocs build --strict`, and the local Streamlit run entrypoint.
+
+### Step 3.2: Site build contract and public report index
+
+- Activate the `site` CLI surface.
+- Add runtime inputs for `--report-root`, `--docs-root`, `--locale {en,es,all}`, and `--dry-run`.
+- Define a shared public site index over existing Phase 2 outputs by reading `run_summary.json`, `metrics.json`, Markdown, HTML, and `public_jobs.csv` from `artifacts/reports/**`.
+- Keep the site builder public-safe: it may read aggregate metrics and public downloads, but it must not read private curated row-level fields.
+
+### Step 3.3: Public Pages information architecture
+
+- Switch MkDocs nav to public-first:
+  - public landing and overview
+  - weekly archive
+  - monthly archive
+  - methodology
+  - downloads
+  - Development
+- Keep existing internal docs under `docs/development/` and `docs/codex/`; do not mix them into the primary public story.
+- Materialize generated public source content under tracked `docs/public/`, with `docs/index.md` becoming the public landing page.
+
+### Step 3.4: First manual Pages write path
+
+- Add the first non-dry-run `site` path:
+  - read Phase 2 report artifacts
+  - generate or update landing and archive source pages
+  - copy public-safe downloads and HTML snapshots into `docs/public/assets/`
+  - write a site run summary under `artifacts/site/`
+- The write path must be idempotent for the same report inputs and must not depend on OpenAI.
+- The site run summary should include locale coverage, latest weekly and monthly period IDs, generated page counts, copied asset counts, and status.
+- `mkdocs build --strict` passing over the generated source is the required acceptance gate for this step.
+
+### Step 3.5: Streamlit data contract and mixed-scope view models
+
+- Add a Streamlit app entrypoint under `src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/`.
+- Read curated DuckDB or Parquet and report artifacts through shared loaders instead of duplicating Phase 2 aggregation logic in the UI layer.
+- Default the app to public-safe summaries and report selection, while adding explicitly labeled local-only private drill-down panes for company, URL, description, and other non-public fields.
+- Package Streamlit as an `app` optional dependency and include it in the local dev extra.
+
+### Step 3.6: Streamlit MVP screens
+
+- Add a local-first dashboard with:
+  - landing summary for latest weekly and monthly periods
+  - period selector
+  - KPI cards and simple charts or tables
+  - report artifact or download links
+  - optional private drill-down section
+- Use Streamlit's native layout, widgets, and lightweight charting for the MVP; no custom frontend component layer in Phase 3.
+- Keep the UI read-only; no editing, annotation, or publish actions.
+
+### Step 3.7: Reproducible fixtures, tests, and usage docs
+
+- Reuse the checked-in Phase 1 upstream fixture workspace to regenerate tiny curated and report fixtures for Phase 3 tests.
+- Add Phase 3 usage docs for:
+  - generating site source from existing report artifacts
+  - running the local Streamlit app
+  - understanding public vs private presentation boundaries
+- Keep the command catalog aligned as each reviewed step lands.
+
+### Step 3.8: Review boundary
+
+- Phase 3 closes once:
+  - `site --dry-run` and non-dry-run `site` pass locally from Phase 2 report artifacts
+  - `mkdocs build --strict` succeeds on the generated public site source
+  - the local Streamlit app loads the fixture-backed data path without errors
+  - public Pages surfaces contain only public-safe data
+  - private Streamlit panes remain local-only and clearly labeled
+- Automation, GitHub Actions publication, and cloud hosting remain Phase 4+ work.
+
+## Phase-3 Commit Boundaries
+- Commit 1: Phase-3 plan and presentation-role expansion
+- Commit 2: site build contract and public report indexing
+- Commit 3: public Pages IA and first `site` write path
+- Commit 4: Streamlit data contract and app shell
+- Commit 5: Streamlit MVP views and public/private boundaries
+- Commit 6: Phase-3 tests and usage docs
 
 ## Phase 4: Automation
 
@@ -284,6 +365,13 @@
 - Phase 2 runtime environment:
   - required for non-dry-run: `OPENAI_API_KEY`, `MX_JOBS_OPENAI_MODEL`, `MX_JOBS_PUBLIC_KEY_SALT`
   - optional override: `MX_JOBS_OPENAI_BASE_URL`
+- Phase 3 `site` inputs:
+  - `--report-root`
+  - `--docs-root`
+  - `--locale {en,es,all}`
+  - `--dry-run`
+- Phase 3 local app entrypoint:
+  - `streamlit run src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py`
 - Planned durable outputs:
   - curated DuckDB/Parquet
   - `metrics.json`
@@ -291,6 +379,11 @@
   - bilingual HTML report snapshots
   - de-identified `public_jobs.csv`
   - `run_summary.json`
+  - `docs/public/weekly/`
+  - `docs/public/monthly/`
+  - `docs/public/downloads/`
+  - `docs/public/assets/`
+  - `artifacts/site/run_summary.json`
   - GitHub Pages site assets
 
 ## Subagent Plan
@@ -305,7 +398,10 @@
   - `canonical_curation`: canonical models, DuckDB writes, Parquet sidecars, and curation summaries
   - `fixtures_validation`: sample artifacts, regeneration helpers, equivalence tests, and smoke tests
   - `analytics_reports`: KPIs, templates, narrative payloads
-  - `dashboard_site`: Streamlit and Pages UX
+  - `site_generation_contracts`: shared report-archive indexing, site build summaries, and `site` CLI integration
+  - `pages_public_ia`: MkDocs public information architecture, public pages, and archive presentation
+  - `streamlit_explorer`: local-first Streamlit exploration and mixed public/private drill-down views
+  - `presentation_validation`: Phase 3 tests, usage docs, and public-boundary validation
   - `automation_release`: GitHub Actions and deployment contracts
 - Subagents never own integration. The main agent merges results, validates behavior, and waits for approval before any commit.
 
@@ -337,8 +433,11 @@
   - AI prompt/input shaping tests
   - CLI smoke checks for `report --dry-run` and non-dry-run report writes
 - Phase 3:
-  - Streamlit helper tests
-  - static site generation tests
+  - site index tests for weekly and monthly archive discovery, latest-period resolution, and empty-archive handling
+  - site build tests proving only public-safe CSV and HTML assets are copied into `docs/public/assets/`
+  - MkDocs smoke tests for the public-first nav and generated bilingual archive pages
+  - Streamlit loader and view-model tests for public/private field segregation, filter behavior, and latest-period defaults
+  - local app smoke tests that import or run the Streamlit entrypoint against fixture-backed curated and report outputs without exceptions
 - Phase 4:
   - workflow tests
   - scheduled/manual pipeline smoke tests
@@ -353,4 +452,9 @@
 - CLI shells for `ingest` and `curate` land in Phase 1 even before the full analytics/report stack exists.
 - Public filtering, dashboard logic, and GitHub automation remain out of scope for Phase 1.
 - Phase 2 report generation reads curated DuckDB/Parquet outputs, resolves closed periods from `observed_at`, and fails closed if required OpenAI/public-key environment variables are missing.
+- Phase 3 is Pages-first, with the public MkDocs nav becoming the primary site IA while current internal docs remain under Development.
+- Generated public site source lives in tracked `docs/public/`.
+- Streamlit ships as an `app` extra plus local `dev` support, defaults to public-safe summaries, and exposes optional clearly labeled local-only private drill-down panes.
+- The public site is generated from existing Phase 2 report artifacts and public downloads, not by re-running Phase 2 analytics or OpenAI during site generation.
+
 
