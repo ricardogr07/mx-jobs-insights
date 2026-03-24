@@ -6,7 +6,7 @@ Public site: <https://ricardogr07.github.io/mx-jobs-insights/>
 
 ## Current Status
 
-This repo now has the backend MVP, public-site generation, and GitHub-native automation in place.
+This repo now has the backend MVP, public-site generation, GitHub-native automation, and the first cloud expansion path in place.
 
 - Roadmap and reviewed phase boundaries: [PLAN.md](PLAN.md)
 - Public docs source: [docs/](docs/)
@@ -23,6 +23,7 @@ Current CLI surfaces:
 
 - `.github/workflows/ci.yml`: minimal green gate for Ruff, pytest, `mkdocs build --strict`, and package build validation
 - `.github/workflows/publish-portfolio-site.yml`: `Publish Portfolio Site`, the manual and scheduled workflow that checks out the upstream `LinkedInWebScraper` `data` branch, runs `pipeline`, and deploys GitHub Pages from the built artifact
+- `.github/workflows/cloud-release.yml`: `Cloud Release`, the manual workflow that builds the containerized `pipeline`, pushes it to Artifact Registry, and can update the Cloud Run Job definition
 
 ## Local Development
 
@@ -30,6 +31,12 @@ Install the repo in editable mode with dev tools:
 
 ```powershell
 python -m pip install -e ".[dev]"
+```
+
+Install the optional Phase 5 cloud clients when validating GCS or BigQuery delivery locally:
+
+```powershell
+python -m pip install -e ".[dev,cloud]"
 ```
 
 Set the repo-local runtime environment before non-dry-run `report` or `pipeline` commands:
@@ -49,6 +56,16 @@ python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence 
 ```
 
 For offline local pipeline/report validation, set `MX_JOBS_OPENAI_BASE_URL=mock://responses` in the current shell before the command.
+
+For Phase 5 cloud validation, the same shell can also set:
+
+- `GOOGLE_CLOUD_PROJECT`
+- `MX_JOBS_GCP_REGION`
+- `MX_JOBS_GCS_BUCKET`
+- `MX_JOBS_BIGQUERY_PRIVATE_DATASET`
+- `MX_JOBS_BIGQUERY_PUBLIC_DATASET`
+- optional `MX_JOBS_GCS_PREFIX`
+- optional `MX_JOBS_UPSTREAM_REPO_URL` and `MX_JOBS_UPSTREAM_REF`
 
 ## Repo Layout
 

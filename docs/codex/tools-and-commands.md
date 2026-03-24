@@ -9,6 +9,11 @@ This page lists the exact local commands and tool statuses that matter during th
 - Purpose: install the local development toolchain for lint, docs, test, and build work.
 - Status: `ready`
 
+### `bootstrap_cloud`
+- Command: `python -m pip install -e .[dev,cloud]`
+- Purpose: install the local development toolchain plus the optional Google Cloud clients needed for Phase 5 runtime validation.
+- Status: `ready`
+
 ### `status`
 - Command: `git status --short`
 - Purpose: inspect the worktree before and after a reviewed step.
@@ -141,6 +146,39 @@ This page lists the exact local commands and tool statuses that matter during th
 - Required for non-dry-run: upstream workspace input plus the same report runtime env used by `report`.
 - Offline local validation may set `MX_JOBS_OPENAI_BASE_URL=mock://responses` to avoid live network calls while still exercising the full write path.
 
+### `cloud`
+- Purpose: provide the cloud execution and warehouse delivery environment used by the Phase 5 container, GCS, BigQuery, and Cloud Run validation paths.
+- Required for cloud execution: `GOOGLE_CLOUD_PROJECT`, `MX_JOBS_GCP_REGION`, `MX_JOBS_GCS_BUCKET`, `MX_JOBS_BIGQUERY_PRIVATE_DATASET`, `MX_JOBS_BIGQUERY_PUBLIC_DATASET`.
+- Optional overrides: `MX_JOBS_GCS_PREFIX`, `MX_JOBS_UPSTREAM_REPO_URL`, `MX_JOBS_UPSTREAM_REF`.
+- Auth: use local ADC for developer validation or workload identity/service-account bindings in cloud.
+## Phase 5 Planned Shells
+These commands document the reviewed Phase 5 cloud delivery surface.
+
+### `container_build_pipeline`
+- Command: `docker build -t mx-jobs-insights-pipeline .`
+- Status: `ready`
+- Purpose: build the deployment-neutral Phase 5 container image around the existing `pipeline` CLI.
+
+### `terraform_fmt_check`
+- Command: `terraform -chdir=infra/terraform fmt -check`
+- Status: `ready`
+- Purpose: verify Terraform formatting before validation or planning.
+
+### `terraform_validate`
+- Command: `terraform -chdir=infra/terraform validate`
+- Status: `ready`
+- Purpose: validate the Terraform configuration for the Phase 5 cloud baseline.
+
+### `terraform_plan_dev`
+- Command: `terraform -chdir=infra/terraform plan`
+- Status: `ready`
+- Purpose: preview the dev environment cloud changes without applying them.
+
+### `gcloud_run_jobs_execute`
+- Command: `gcloud run jobs execute mx-jobs-insights-pipeline --region <region>`
+- Status: `ready`
+- Purpose: execute the containerized `pipeline` from Cloud Run Jobs during cloud validation.
+
 ## Local Tool Status
 
 ### `git`
@@ -162,7 +200,7 @@ This page lists the exact local commands and tool statuses that matter during th
 - Current note: direct shell invocation is blocked by PowerShell execution policy in this environment, even though Codex is available through the editor workflow.
 
 ## Why The Commands Use Conservative Status Labels
-- This repo is now past the initial bootstrap and is entering Phase 1.
+- This repo is now past the initial bootstrap and is operating through the reviewed phase stack into Phase 5.
 - Shell tools are marked by current observed behavior, not by ideal setup.
 - Test is now `ready` because the offline suite is green, while the current Phase-1 shells and the Phase-2 report commands cover the reviewed backend surfaces.
 - Bootstrap, docs, build, and preflight stay `ready` because the necessary project config files already exist.
@@ -254,4 +292,7 @@ These commands document the reviewed Phase 4 automation surface.
 - Command: `.github/workflows/publish-portfolio-site.yml`
 - Status: ready
 - Purpose: define the manual-dispatch and scheduled GitHub-native automation that runs `pipeline`, uploads a Pages artifact, deploys GitHub Pages without auto-committing generated files, and writes a workflow summary with the public Pages link.
+
+
+
 

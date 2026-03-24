@@ -10,6 +10,7 @@ This section keeps the internal project contracts discoverable after the public-
 - [Phase 2 Report Usage](phase-2-report-usage.md)
 - [Phase 3 Site And Dashboard Usage](phase-3-site-and-dashboard-usage.md)
 - [Phase 4 Automation Usage](phase-4-automation-usage.md)
+- [Phase 5 Cloud Usage](phase-5-cloud-usage.md)
 
 ## Codex Docs
 - [Codex Overview](../codex/index.md)
@@ -17,4 +18,5 @@ This section keeps the internal project contracts discoverable after the public-
 - [Skills](../codex/skills.md)
 - [Tools and Commands](../codex/tools-and-commands.md)
 - [Integrations](../codex/integrations.md)
+
 

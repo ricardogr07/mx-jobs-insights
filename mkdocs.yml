@@ -19,6 +19,7 @@ nav:
       - Phase 2 Report Usage: development/phase-2-report-usage.md
       - Phase 3 Site And Dashboard Usage: development/phase-3-site-and-dashboard-usage.md
       - Phase 4 Automation Usage: development/phase-4-automation-usage.md
+      - Phase 5 Cloud Usage: development/phase-5-cloud-usage.md
       - Codex:
           - Overview: codex/index.md
           - Subagents: codex/subagents.md
