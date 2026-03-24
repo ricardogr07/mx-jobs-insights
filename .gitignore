@@ -12,6 +12,8 @@ build/
 develop-eggs/
 dist/
 downloads/
+!docs/public/downloads/
+!docs/public/downloads/index.md
 eggs/
 .eggs/
 lib/
@@ -147,3 +149,5 @@ artifacts/
 # Local generated report/download directories outside tracked docs
 reports-output/
 download-output/
+
+
