@@ -269,7 +269,7 @@ def test_pipeline_non_dry_run_reuses_fixture_backed_flows(
     assert summary.pipeline_run_summary_path is not None and summary.pipeline_run_summary_path.is_file()
     assert summary.site_output_root is not None
     assert summary.site_output_root.name == "site"
-    assert (config.docs_root / "development" / "index.md").is_file()
+    assert not (config.docs_root / "development").exists()
     assert docs_builder.calls == [config.docs_root]
 
 
@@ -408,3 +408,4 @@ def test_pipeline_non_dry_run_fails_closed_when_cloud_runtime_is_incomplete(
     assert "MX_JOBS_GCS_BUCKET" in "\n".join(summary.notes)
     assert "MX_JOBS_BIGQUERY_PRIVATE_DATASET" in "\n".join(summary.notes)
     assert "MX_JOBS_BIGQUERY_PUBLIC_DATASET" in "\n".join(summary.notes)
+

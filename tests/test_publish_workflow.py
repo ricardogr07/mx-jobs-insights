@@ -9,11 +9,11 @@ PUBLISH_WORKFLOW_PATH = Path(".github/workflows/publish-portfolio-site.yml")
 
 def _load_workflow_text() -> str:
     if not PUBLISH_WORKFLOW_PATH.is_file():
-        pytest.skip("Phase 4 workflow file has not been added yet.")
+        pytest.skip("Publish workflow file is not present in this checkout.")
     return PUBLISH_WORKFLOW_PATH.read_text(encoding="utf-8")
 
 
-def test_publish_workflow_contract_matches_phase_4_plan() -> None:
+def test_publish_workflow_contract() -> None:
     text = _load_workflow_text()
 
     assert "name: Publish Portfolio Site" in text
@@ -46,4 +46,3 @@ def test_publish_workflow_contract_matches_phase_4_plan() -> None:
     assert "GITHUB_STEP_SUMMARY" in text
     assert "# Publish summary" in text
     assert "Public site:" in text
-

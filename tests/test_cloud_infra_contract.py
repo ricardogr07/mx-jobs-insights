@@ -5,7 +5,7 @@ from pathlib import Path
 
 def test_dockerfile_matches_container_runtime_contract() -> None:
     dockerfile = Path('Dockerfile')
-    assert dockerfile.is_file(), 'Expected Dockerfile to exist for the Phase 5 container runtime.'
+    assert dockerfile.is_file(), 'Expected Dockerfile to exist for the container runtime.'
 
     text = dockerfile.read_text(encoding='utf-8')
 
@@ -43,3 +43,4 @@ def test_terraform_root_matches_phase_5_foundation_contract() -> None:
     assert 'cloud_run_upstream_ref' in variables_text
     assert 'mx_jobs_openai_model' in variables_text
     assert 'mx_jobs_openai_base_url' in variables_text
+
