@@ -44,6 +44,11 @@ This page lists the exact local commands and tool statuses that matter during th
 - Purpose: build the package from the current working tree.
 - Status: `ready`
 
+### `GitHub Actions CI workflow`
+- Command: `.github/workflows/ci.yml`
+- Purpose: run the minimal green gate on GitHub push and pull-request events with Ruff, pytest, strict MkDocs, package build validation, and a workflow summary that links to the public site.
+- Status: `ready`
+
 ### `workspace_validate`
 - Command: `python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main ingest --source auto --dry-run --upstream-root ../LinkedInWebScraper`
 - Purpose: validate the planned sibling upstream workspace shape and source resolution contract without mutating the source repo.
@@ -246,16 +251,7 @@ These commands document the reviewed Phase 4 automation surface.
 - Purpose: validate the full monthly automation entrypoint, including curated writes, report artifacts, public site generation, and strict docs build checks.
 
 ### `GitHub Actions publish workflow`
-- Command: `.github/workflows/phase4-automation.yml`
+- Command: `.github/workflows/publish-portfolio-site.yml`
 - Status: ready
-- Purpose: define the manual-dispatch and scheduled GitHub-native automation that runs `pipeline`, uploads a Pages artifact, and deploys GitHub Pages without auto-committing generated files.
-
-
-
-
-
-
-
-
-
+- Purpose: define the manual-dispatch and scheduled GitHub-native automation that runs `pipeline`, uploads a Pages artifact, deploys GitHub Pages without auto-committing generated files, and writes a workflow summary with the public Pages link.
 
