@@ -39,7 +39,8 @@ def build_report_metrics(
     period_records = tuple(
         record
         for record in records
-        if period.start_date <= getattr(record, date_field) <= period.end_date
+        if (date_value := getattr(record, date_field)) is not None
+        and period.start_date <= date_value <= period.end_date
     )
     latest_jobs = _select_latest_jobs(period_records)
 
