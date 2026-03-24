@@ -4,42 +4,43 @@ Bilingual Mexico LinkedIn jobs analytics portfolio powered by curated `LinkedInW
 
 Public site: <https://ricardogr07.github.io/mx-jobs-insights/>
 
-## Current Status
+## What This Repo Does
 
-This repo now has the backend MVP, public-site generation, GitHub-native automation, and the first cloud expansion path in place.
+This repo turns upstream LinkedIn job snapshots into four durable surfaces:
 
-- Roadmap and reviewed phase boundaries: [PLAN.md](PLAN.md)
-- Public docs source: [docs/](docs/)
-- Internal implementation notes: [docs/development/](docs/development/)
+- curated DuckDB and Parquet datasets
+- weekly and monthly bilingual report artifacts
+- a public MkDocs site with archives and downloads
+- local, GitHub Actions, and cloud execution paths around the same `pipeline` entrypoint
 
-Current CLI surfaces:
+## Runtime Surfaces
 
-- `curate`: read upstream exports and persist curated DuckDB and Parquet outputs
-- `report`: generate weekly or monthly bilingual report artifacts plus the public CSV
-- `site`: materialize the public-first MkDocs source from report artifacts
-- `pipeline`: orchestrate `curate`, `report`, `site`, and strict docs validation for local runs and GitHub Actions
+- `curate`: validate the upstream workspace, normalize canonical records, and write curated storage
+- `report`: build closed-period metrics, render bilingual reports, and export the public CSV
+- `site`: generate the public MkDocs source from completed report artifacts
+- `pipeline`: orchestrate `curate`, `report`, `site`, docs validation, and optional cloud delivery
 
 ## Workflows
 
-- `.github/workflows/ci.yml`: minimal green gate for Ruff, pytest, `mkdocs build --strict`, and package build validation
-- `.github/workflows/publish-portfolio-site.yml`: `Publish Portfolio Site`, the manual and scheduled workflow that checks out the upstream `LinkedInWebScraper` `data` branch, runs `pipeline`, and deploys GitHub Pages from the built artifact
-- `.github/workflows/cloud-release.yml`: `Cloud Release`, the manual workflow that builds the containerized `pipeline`, pushes it to Artifact Registry, and can update the Cloud Run Job definition
+- `.github/workflows/ci.yml`: quality gate for Ruff, pytest, strict MkDocs, and package build validation
+- `.github/workflows/publish-portfolio-site.yml`: publish the public site from a workflow-built Pages artifact
+- `.github/workflows/release-cloud-run-job.yml`: build and publish the container image and optionally update the Cloud Run Job definition
 
 ## Local Development
 
-Install the repo in editable mode with dev tools:
+Install the local development toolchain:
 
 ```powershell
 python -m pip install -e ".[dev]"
 ```
 
-Install the optional Phase 5 cloud clients when validating GCS or BigQuery delivery locally:
+Install optional cloud clients when validating GCS or BigQuery delivery locally:
 
 ```powershell
 python -m pip install -e ".[dev,cloud]"
 ```
 
-Set the repo-local runtime environment before non-dry-run `report` or `pipeline` commands:
+Load repo-local report and publication settings before non-dry-run `report` or `pipeline` commands:
 
 ```powershell
 Get-Content .\configs\local\report-env.ps1 | ForEach-Object { Invoke-Expression $_ }
@@ -55,24 +56,19 @@ python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main site --report-root 
 python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence monthly --as-of 2026-04-01 --upstream-root tests/data/upstream_workspace
 ```
 
-For offline local pipeline/report validation, set `MX_JOBS_OPENAI_BASE_URL=mock://responses` in the current shell before the command.
-
-For Phase 5 cloud validation, the same shell can also set:
-
-- `GOOGLE_CLOUD_PROJECT`
-- `MX_JOBS_GCP_REGION`
-- `MX_JOBS_GCS_BUCKET`
-- `MX_JOBS_BIGQUERY_PRIVATE_DATASET`
-- `MX_JOBS_BIGQUERY_PUBLIC_DATASET`
-- optional `MX_JOBS_GCS_PREFIX`
-- optional `MX_JOBS_UPSTREAM_REPO_URL` and `MX_JOBS_UPSTREAM_REF`
+For offline local pipeline and report validation, set `MX_JOBS_OPENAI_BASE_URL=mock://responses` in the current shell before the command.
 
 ## Repo Layout
 
 - `src/mexico_linkedin_jobs_portfolio/`: production code
 - `tests/`: unit, integration, and workflow contract coverage
-- `docs/`: public MkDocs source plus development notes
+- `docs/`: public MkDocs source only
+- `internal/`: operator guides, policies, roadmap history, and Codex guidance
 - `configs/`: local environment helpers and config scaffolding
 - `scripts/`: reproducibility helpers such as fixture regeneration
 - `artifacts/`: local generated outputs for curated data, reports, site builds, and diagnostics
 
+## Internal References
+
+- Current roadmap: [PLAN.md](PLAN.md)
+- Internal operator and Codex docs: [internal/](internal/)

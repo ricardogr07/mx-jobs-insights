@@ -4,6 +4,7 @@ shell = "cmd"
 platform = "windows"
 python_floor = "3.11"
 docs_root = "docs"
+internal_docs_root = "internal"
 package_namespace = "mexico_linkedin_jobs_portfolio"
 
 [rules]
@@ -18,6 +19,7 @@ no_secrets_in_repo = true
 production_logic_in_src_and_scripts = true
 notebooks_exploratory_only = true
 
+# Repo basics
 [commands.bootstrap]
 command = "python -m pip install -e .[dev]"
 purpose = "Install the local development toolchain for lint, docs, test, and build work."
@@ -25,7 +27,7 @@ status = "ready"
 
 [commands.bootstrap_cloud]
 command = "python -m pip install -e .[dev,cloud]"
-purpose = "Install the local development toolchain plus optional Google Cloud clients for Phase 5 validation."
+purpose = "Install the local development toolchain plus optional Google Cloud clients."
 status = "ready"
 
 [commands.status]
@@ -40,22 +42,23 @@ status = "ready"
 
 [commands.python_check]
 command = "python --version"
-purpose = "Confirm the active Python interpreter before tooling bootstrap lands."
+purpose = "Confirm the active Python interpreter."
 status = "ready"
 
+# Validation
 [commands.test]
 command = "python -m pytest -q"
-purpose = "Run the default offline test suite once tests are added."
+purpose = "Run the default offline test suite."
 status = "ready"
 
 [commands.preflight]
 command = "python -m tox -e preflight"
-purpose = "Run the current local quality gate for lint, docs, and build checks."
+purpose = "Run the local quality gate for lint, docs, tests, and build checks."
 status = "ready"
 
 [commands.docs]
 command = "python -m mkdocs build --strict"
-purpose = "Build project docs through MkDocs."
+purpose = "Build the public documentation site through MkDocs."
 status = "ready"
 
 [commands.build]
@@ -63,46 +66,49 @@ command = "python -m build --no-isolation"
 purpose = "Build the package from the current working tree."
 status = "ready"
 
+# Ingestion
 [commands.workspace_validate]
 command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main ingest --source auto --dry-run --upstream-root ../LinkedInWebScraper"
-purpose = "Validate the planned sibling upstream workspace shape and source resolution contract without mutating the source repo."
+purpose = "Validate the sibling upstream workspace shape and source resolution contract."
 status = "ready"
 
 [commands.ingest_dry_run_sqlite]
 command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main ingest --source sqlite --dry-run"
-purpose = "Run the planned SQLite ingestion shell in dry-run mode once the Phase-1 CLI exists."
+purpose = "Run the SQLite ingestion path in dry-run mode."
 status = "ready"
 
 [commands.ingest_dry_run_csv]
 command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main ingest --source csv --dry-run"
-purpose = "Run the planned CSV ingestion shell in dry-run mode once the Phase-1 CLI exists."
+purpose = "Run the CSV ingestion path in dry-run mode."
 status = "ready"
 
 [commands.curate_dry_run_auto]
 command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main curate --source auto --dry-run"
-purpose = "Run the planned canonical curation shell in auto-source dry-run mode once Phase 1 lands."
+purpose = "Validate source resolution, canonical batching, and curation summaries without writing outputs."
 status = "ready"
 
 [commands.curate_write_auto]
 command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main curate --source auto"
-purpose = "Run the first non-dry-run curated write path to persist DuckDB state and Parquet sidecars."
+purpose = "Persist curated DuckDB state and Parquet sidecars."
 status = "ready"
 
 [commands.fixtures_regen]
 command = "python scripts/make_sample_data.py"
-purpose = "Regenerate the checked-in Phase-1 sample fixtures under tests/data/upstream_workspace from a local upstream workspace."
+purpose = "Regenerate the checked-in source fixtures under tests/data/upstream_workspace."
 status = "ready"
 
+# Reporting
 [commands.report_dry_run_weekly]
 command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report --cadence weekly --as-of 2026-03-23 --curated-root artifacts/curated --output-root artifacts/reports --dry-run"
-purpose = "Compute a closed-week report summary from curated data without writing artifacts or calling OpenAI."
+purpose = "Compute a closed-week report summary from curated data without writing artifacts."
 status = "ready"
 
 [commands.report_write_monthly]
 command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main report --cadence monthly --as-of 2026-04-01 --curated-root artifacts/curated --output-root artifacts/reports"
-purpose = "Write the monthly report artifacts, public CSV, and OpenAI narration when the runtime env is configured."
+purpose = "Write the monthly report bundle, public CSV, and narration when the runtime env is configured."
 status = "ready"
 
+# Site
 [commands.site_dry_run]
 command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main site --dry-run"
 purpose = "Resolve the public site index from completed report artifacts without writing MkDocs source pages."
@@ -113,39 +119,41 @@ command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main site"
 purpose = "Generate the public MkDocs source pages and copy public-safe report assets into the docs tree."
 status = "ready"
 
-[commands.pipeline_dry_run]
-command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --dry-run --upstream-root tests/data/upstream_workspace"
-purpose = "Validate the Phase 4 orchestration contract over fixture-backed upstream data without writing durable curated, report, or site outputs."
-status = "ready"
-
-[commands.pipeline_write_weekly]
-command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --as-of 2026-03-30 --upstream-root tests/data/upstream_workspace"
-purpose = "Run the full weekly automation entrypoint over fixture-backed upstream data, including curation, report generation, site generation, and docs validation."
-status = "ready"
-
-[commands.pipeline_write_monthly]
-command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence monthly --as-of 2026-04-01 --upstream-root tests/data/upstream_workspace"
-purpose = "Run the full monthly automation entrypoint over fixture-backed upstream data, including curation, report generation, site generation, and docs validation."
-status = "ready"
-
 [commands.streamlit_run_local]
 command = "streamlit run src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py"
 purpose = "Launch the local-first Streamlit dashboard over curated and report artifacts."
 status = "ready"
 
+# Automation
+[commands.pipeline_dry_run]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --dry-run --upstream-root tests/data/upstream_workspace"
+purpose = "Validate the fixture-backed pipeline orchestration path without writing durable outputs."
+status = "ready"
+
+[commands.pipeline_write_weekly]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence weekly --as-of 2026-03-30 --upstream-root tests/data/upstream_workspace"
+purpose = "Run the full weekly automation entrypoint over fixture-backed upstream data."
+status = "ready"
+
+[commands.pipeline_write_monthly]
+command = "python -m mexico_linkedin_jobs_portfolio.interfaces.cli.main pipeline --cadence monthly --as-of 2026-04-01 --upstream-root tests/data/upstream_workspace"
+purpose = "Run the full monthly automation entrypoint over fixture-backed upstream data."
+status = "ready"
+
+# Cloud
 [commands.container_build_pipeline]
 command = "docker build -t mx-jobs-insights-pipeline ."
-purpose = "Build the deployment-neutral Phase 5 container image around the existing pipeline CLI."
+purpose = "Build the deployment-neutral container image around the existing pipeline CLI."
 status = "ready"
 
 [commands.terraform_fmt_check]
 command = "terraform -chdir=infra/terraform fmt -check"
-purpose = "Check Terraform formatting for the Phase 5 cloud infrastructure root."
+purpose = "Check Terraform formatting for the cloud infrastructure root."
 status = "ready"
 
 [commands.terraform_validate]
 command = "terraform -chdir=infra/terraform validate"
-purpose = "Validate the Phase 5 Terraform configuration before planning or apply steps."
+purpose = "Validate the Terraform configuration."
 status = "ready"
 
 [commands.gcloud_run_jobs_execute]
@@ -155,9 +163,9 @@ status = "ready"
 
 [integrations.openai_docs]
 kind = "mcp"
-status = "recommended"
+status = "optional"
 availability = "recommended_later"
-purpose = "Official OpenAI documentation lookup for narrative generation and future OpenAI integration work."
+purpose = "Official OpenAI documentation lookup for narrative generation and OpenAI integration work."
 add_command = "codex mcp add openaiDeveloperDocs --url https://developers.openai.com/mcp"
 reference = "https://platform.openai.com/docs/docs-mcp"
 session_visible = false
@@ -182,6 +190,7 @@ references = [
 ]
 session_visible = false
 
+# Subagents by domain
 [subagents.repo_bootstrap]
 purpose = "Own scaffolding, package skeleton setup, and tooling shell work."
 write_scope = "root config files, src package skeleton, tests skeleton"
@@ -189,18 +198,18 @@ use_when = "Bootstrapping the repo or adding foundational tooling."
 
 [subagents.docs_devx]
 purpose = "Own internal docs, Codex guidance, and developer workflow material."
-write_scope = "docs/, codex/, AGENTS.md"
-use_when = "Updating docs, internal guidance, or enablement material."
+write_scope = "internal/, codex/, AGENTS.md"
+use_when = "Updating docs, internal guidance, or operator enablement material."
 
 [subagents.data_contracts]
-purpose = "Own durable ingestion-policy docs, source-field contracts, and schema decisions after the workspace and adapter seams are established."
-write_scope = "docs/development, docs/codex, PLAN.md"
-use_when = "Use for source-contract policy updates and schema-decision documentation, not for adapter implementation."
+purpose = "Own durable ingestion-policy docs, source-field contracts, and schema decisions."
+write_scope = "internal/development, internal/codex, PLAN.md"
+use_when = "Use for source-contract policy updates and schema-decision documentation."
 
 [subagents.source_sync_contracts]
 purpose = "Own the upstream workspace contract, source-mode seams, and local data-branch path validation."
 write_scope = "src/mexico_linkedin_jobs_portfolio/config, src/mexico_linkedin_jobs_portfolio/sources, tests"
-use_when = "Use for workspace configuration, local upstream path discovery, and source adapter contract planning."
+use_when = "Use for workspace configuration, local upstream path discovery, and source adapter planning."
 
 [subagents.sqlite_source_adapter]
 purpose = "Own SQLite reader scaffolding, schema mapping, and SQLite-specific ingestion tests."
@@ -219,40 +228,22 @@ use_when = "Use when defining the canonical model or persisting curated outputs.
 
 [subagents.fixtures_validation]
 purpose = "Own deterministic source fixtures, regeneration helpers, equivalence checks, and ingest smoke tests."
-write_scope = "tests, scripts, docs/development"
+write_scope = "tests, scripts, internal/development"
 use_when = "Use when building sample artifacts or validating SQLite/CSV parity and smoke paths."
-
-[runtime_env.report]
-purpose = "Phase 2 report narration and publication config."
-required = ["OPENAI_API_KEY", "MX_JOBS_OPENAI_MODEL", "MX_JOBS_PUBLIC_KEY_SALT"]
-optional = ["MX_JOBS_OPENAI_BASE_URL"]
-status = "documented"
-
-[runtime_env.cloud]
-purpose = "Phase 5 cloud execution, artifact sync, and warehouse release config."
-required = [
-  "GOOGLE_CLOUD_PROJECT",
-  "MX_JOBS_GCP_REGION",
-  "MX_JOBS_GCS_BUCKET",
-  "MX_JOBS_BIGQUERY_PRIVATE_DATASET",
-  "MX_JOBS_BIGQUERY_PUBLIC_DATASET",
-]
-optional = ["MX_JOBS_GCS_PREFIX", "MX_JOBS_UPSTREAM_REPO_URL", "MX_JOBS_UPSTREAM_REF"]
-status = "documented"
 
 [subagents.analytics_reports]
 purpose = "Own KPI definitions, report rendering, publication filters, and narrative payload design."
-write_scope = "src/mexico_linkedin_jobs_portfolio/analytics, src/mexico_linkedin_jobs_portfolio/reporting, src/mexico_linkedin_jobs_portfolio/models, tests, docs/development"
+write_scope = "src/mexico_linkedin_jobs_portfolio/analytics, src/mexico_linkedin_jobs_portfolio/reporting, src/mexico_linkedin_jobs_portfolio/models, tests, internal/development"
 use_when = "Building metrics, report rendering, public CSV filtering, or narrative generation layers."
 
 [subagents.site_generation_contracts]
-purpose = "Own the public site index, site-generation contracts, and site CLI-facing summary models."
+purpose = "Own the public site index, site-generation contracts, and site summary models."
 write_scope = "src/mexico_linkedin_jobs_portfolio/config, src/mexico_linkedin_jobs_portfolio/presentation, src/mexico_linkedin_jobs_portfolio/interfaces/cli, src/mexico_linkedin_jobs_portfolio/models, tests"
-use_when = "Building the Phase 3 site command and its shared artifact catalog."
+use_when = "Building the site command and its shared artifact catalog."
 
 [subagents.pages_public_ia]
-purpose = "Own the public-first MkDocs information architecture and public-facing docs pages."
-write_scope = "docs/index.md, docs/development, mkdocs.yml"
+purpose = "Own the public MkDocs information architecture and public-facing docs pages."
+write_scope = "docs/index.md, docs/public, mkdocs.yml"
 use_when = "Restructuring the public site navigation or adding public documentation pages."
 
 [subagents.streamlit_explorer]
@@ -262,58 +253,71 @@ use_when = "Building the local-only dashboard surface or its view-model helpers.
 
 [subagents.presentation_validation]
 purpose = "Own presentation smoke tests, docs validations, and public/private boundary checks."
-write_scope = "tests, docs/development, docs/codex, mkdocs.yml"
-use_when = "Validating the Phase 3 site and dashboard contract without changing core UI behavior."
+write_scope = "tests, internal/development, internal/codex, mkdocs.yml"
+use_when = "Validating the public site and dashboard contract without changing core UI behavior."
 
 [subagents.pipeline_orchestrator]
-purpose = "Own the Phase 4 automation CLI, orchestration summaries, and fixture-backed pipeline integration tests."
+purpose = "Own the automation CLI, orchestration summaries, and fixture-backed pipeline integration tests."
 write_scope = "src/mexico_linkedin_jobs_portfolio/config, src/mexico_linkedin_jobs_portfolio/interfaces/cli, src/mexico_linkedin_jobs_portfolio/models, src/mexico_linkedin_jobs_portfolio/automation, tests"
 use_when = "Building the automation entrypoint that sequences curate, report, site, and docs validation."
 
 [subagents.workflow_release]
 purpose = "Own GitHub Actions workflow definitions, upstream checkout wiring, Pages deployment, and artifact retention rules."
-write_scope = ".github/, docs/development"
-use_when = "Adding or revising GitHub-native automation, schedules, or Pages deployment contracts."
+write_scope = ".github/, internal/development"
+use_when = "Adding or revising GitHub-native automation, schedules, or deployment contracts."
 
 [subagents.automation_validation]
 purpose = "Own automation docs, command-catalog updates, workflow assertions, and runtime-secret guidance."
-write_scope = "tests, docs/development, docs/codex, codex/config.toml"
-use_when = "Validating the Phase 4 automation contract without editing orchestration or workflow core logic."
-
-[subagents.dashboard_site]
-purpose = "Own late-phase Streamlit dashboard and public site UX work when higher-level presentation changes are needed."
-write_scope = "app/, site templates, Pages docs"
-use_when = "Building interactive exploration or static site presentation layers."
+write_scope = "tests, internal/development, internal/codex, codex/config.toml"
+use_when = "Validating automation contracts without editing orchestration or workflow core logic."
 
 [subagents.automation_release]
 purpose = "Own workflows, deployment contracts, and publication automation."
-write_scope = ".github/, release docs, runtime docs"
+write_scope = ".github/, internal/development"
 use_when = "Adding schedules, CI/CD, deployment, or publishing automation."
 
 [subagents.container_runtime]
 purpose = "Own the container image, deployment-neutral pipeline entrypoint, and cloud runtime packaging."
-write_scope = "infra/, Dockerfile, .dockerignore, docs/development, docs/codex"
-use_when = "Building the Phase 5 container contract or packaging the pipeline for cloud execution."
+write_scope = "infra/, Dockerfile, .dockerignore, internal/development, internal/codex"
+use_when = "Building the container contract or packaging the pipeline for cloud execution."
 
 [subagents.cloud_artifact_sync]
 purpose = "Own GCS object layout, sync safety, and cloud artifact publication contracts."
-write_scope = "src/mexico_linkedin_jobs_portfolio, tests, docs/development"
+write_scope = "src/mexico_linkedin_jobs_portfolio, tests, internal/development"
 use_when = "Adding cloud storage mirroring for curated, report, site, or diagnostics outputs."
 
 [subagents.warehouse_exports]
 purpose = "Own BigQuery export contracts and public/private dataset boundaries."
-write_scope = "src/mexico_linkedin_jobs_portfolio, tests, docs/development"
+write_scope = "src/mexico_linkedin_jobs_portfolio, tests, internal/development"
 use_when = "Defining or validating BigQuery delivery from curated and report artifacts."
 
 [subagents.terraform_foundation]
 purpose = "Own Terraform roots, GCP resource layout, IAM, and environment wiring."
-write_scope = "infra/, docs/development"
-use_when = "Adding the Phase 5 infrastructure baseline or validation commands."
+write_scope = "infra/, internal/development"
+use_when = "Adding the infrastructure baseline or validation commands."
 
 [subagents.cloud_release_validation]
-purpose = "Own cloud release docs, runbooks, and validation coverage for the Phase 5 delivery path."
-write_scope = "tests, docs/development, docs/codex, codex/config.toml"
+purpose = "Own cloud release docs, runbooks, and validation coverage for the delivery path."
+write_scope = "tests, internal/development, internal/codex, codex/config.toml"
 use_when = "Validating the cloud release path without rewriting container, Terraform, or delivery code."
+
+[runtime_env.report]
+purpose = "Report narration and publication config."
+required = ["OPENAI_API_KEY", "MX_JOBS_OPENAI_MODEL", "MX_JOBS_PUBLIC_KEY_SALT"]
+optional = ["MX_JOBS_OPENAI_BASE_URL"]
+status = "documented"
+
+[runtime_env.cloud]
+purpose = "Cloud execution, artifact sync, and warehouse release config."
+required = [
+  "GOOGLE_CLOUD_PROJECT",
+  "MX_JOBS_GCP_REGION",
+  "MX_JOBS_GCS_BUCKET",
+  "MX_JOBS_BIGQUERY_PRIVATE_DATASET",
+  "MX_JOBS_BIGQUERY_PUBLIC_DATASET",
+]
+optional = ["MX_JOBS_GCS_PREFIX", "MX_JOBS_UPSTREAM_REPO_URL", "MX_JOBS_UPSTREAM_REF"]
+status = "documented"
 
 [skills.current.openai_docs]
 status = "observed_builtin"
@@ -332,15 +336,12 @@ status = "observed_builtin"
 purpose = "Run governed pairwise review workflows when that review format is needed."
 
 [skills.future.mx_jobs_portfolio_maintainer]
-status = "planned"
-purpose = "Guide phased portfolio development with strict review gates, data-contract awareness, and safe subagent partitioning."
+status = "optional_concept"
+purpose = "Guide repo maintenance with review gates, data-contract awareness, and safe subagent partitioning."
 target_responsibilities = [
-  "phase-aware execution checkpoints",
+  "roadmap-aware execution checkpoints",
   "review-before-commit workflow reminders",
-  "data-branch contract awareness",
+  "upstream data-branch contract awareness",
   "safe subagent work partitioning",
-  "docs and automation alignment by phase",
+  "docs and automation alignment",
 ]
-
-
-
