@@ -1,6 +1,6 @@
 # Mexico LinkedIn Jobs Portfolio / Portafolio de Vacantes de LinkedIn en Mexico
 
-This public site is generated from reviewed weekly and monthly report artifacts. / Este sitio publico se genera a partir de artefactos semanales y mensuales ya revisados.
+This public site is generated from completed weekly and monthly report artifacts. / Este sitio publico se genera a partir de artefactos semanales y mensuales ya generados.
 
 - Weekly archive / Archivo semanal: [Open / Abrir](public/weekly/index.md)
 - Monthly archive / Archivo mensual: [Open / Abrir](public/monthly/index.md)
@@ -15,3 +15,4 @@ No report available yet. / Aun no hay reporte disponible.
 - Jobs / Vacantes: 2
 - Observations / Observaciones: 2
 - Assets / Activos: [public_jobs.csv](public/assets/monthly/2026-03/public_jobs.csv) | [HTML EN](public/assets/monthly/2026-03/report.en.html) | [HTML ES](public/assets/monthly/2026-03/report.es.html)
+
