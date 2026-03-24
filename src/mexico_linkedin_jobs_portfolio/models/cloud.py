@@ -1,4 +1,4 @@
-"""Phase 5 cloud delivery models shared by pipeline orchestration and tests."""
+"""Cloud delivery models shared by pipeline orchestration and tests."""
 
 from __future__ import annotations
 
@@ -96,3 +96,4 @@ class BigQueryExportResult:
             "notes": list(self.notes),
             "tables": [table.to_display_dict() for table in self.tables],
         }
+

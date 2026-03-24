@@ -1,4 +1,4 @@
-"""Configuration models for Phase 3 public site generation."""
+"""Configuration models for public site generation."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ class SiteArtifactConfig:
 
 @dataclass(frozen=True, slots=True)
 class SiteConfig:
-    """Describe one Phase 3 public-site generation request."""
+    """Describe one public-site generation request."""
 
     report_root: Path = Path("artifacts/reports")
     docs_root: Path = Path("docs")
@@ -71,7 +71,7 @@ class SiteConfig:
 
     @property
     def site_artifacts(self) -> SiteArtifactConfig:
-        """Return the configured Phase 3 runtime-artifact root."""
+        """Return the configured site runtime-artifact root."""
 
         return SiteArtifactConfig()
 
@@ -86,3 +86,6 @@ class SiteConfig:
             "locale_coverage": list(self.locale_coverage),
             "dry_run": self.dry_run,
         }
+
+
+

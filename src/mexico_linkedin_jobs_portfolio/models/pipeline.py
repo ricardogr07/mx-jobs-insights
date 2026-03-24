@@ -1,4 +1,4 @@
-"""Automation pipeline models shared across local, GitHub, and Phase 5 cloud delivery."""
+"""Automation pipeline models shared across local, GitHub, and cloud delivery."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ class PipelineRunSummary:
     site_output_root: Path | None = None
     cloud_sync: CloudSyncResult | None = None
     bigquery_export: BigQueryExportResult | None = None
-    status: str = "planned_shell"
+    status: str = "not_run"
     notes: tuple[str, ...] = ()
 
     def to_display_dict(self) -> dict[str, Any]:
@@ -109,3 +109,5 @@ class PipelineRunSummary:
             "status": self.status,
             "notes": list(self.notes),
         }
+
+

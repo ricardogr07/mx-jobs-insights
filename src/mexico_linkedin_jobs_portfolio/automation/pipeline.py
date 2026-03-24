@@ -194,7 +194,7 @@ class PipelineOrchestrator:
         if not config.dry_run and cloud_requested and not cloud_environment.is_configured:
             missing_cloud = list(config.missing_cloud_runtime_env())
             notes.append(
-                "Phase 5 cloud delivery was requested because GCP environment variables were present."
+                "Cloud delivery was requested because GCP environment variables were present."
             )
             notes.append(
                 f"Missing cloud runtime env: {', '.join(missing_cloud)}."
@@ -590,3 +590,4 @@ class PipelineOrchestrator:
             encoding="utf-8",
         )
         return finalized, exit_code
+

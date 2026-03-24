@@ -1,4 +1,4 @@
-"""Configuration models for Phase 5 cloud delivery and release contracts."""
+"""Configuration models for cloud delivery and release contracts."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ BIGQUERY_PUBLIC_DATASET_ENV = "MX_JOBS_BIGQUERY_PUBLIC_DATASET"
 
 @dataclass(frozen=True, slots=True)
 class CloudEnvironmentConfig:
-    """Describe the optional Phase 5 cloud runtime derived from environment variables."""
+    """Describe the optional cloud runtime derived from environment variables."""
 
     project_id: str | None = None
     region: str | None = None
@@ -25,7 +25,7 @@ class CloudEnvironmentConfig:
 
     @property
     def cloud_requested(self) -> bool:
-        """Return whether any Phase 5 cloud runtime values are present."""
+        """Return whether any cloud runtime values are present."""
 
         return any(
             value
@@ -41,7 +41,7 @@ class CloudEnvironmentConfig:
 
     @property
     def is_configured(self) -> bool:
-        """Return whether the full Phase 5 cloud runtime is available."""
+        """Return whether the full cloud runtime is available."""
 
         return not self.missing_runtime_env()
 
@@ -102,3 +102,7 @@ class CloudEnvironmentConfig:
             "optional_env_names": [GCS_PREFIX_ENV],
             "missing_runtime_env": list(self.missing_runtime_env()) if self.cloud_requested else [],
         }
+
+
+
+

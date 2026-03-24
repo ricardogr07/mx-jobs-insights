@@ -1,4 +1,4 @@
-"""Configuration models for automation orchestration and optional Phase 5 cloud delivery."""
+"""Configuration models for automation orchestration and optional cloud delivery."""
 
 from __future__ import annotations
 
@@ -195,3 +195,4 @@ class PipelineConfig:
                 UPSTREAM_REF_ENV,
             ],
         }
+

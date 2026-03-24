@@ -1,4 +1,4 @@
-"""Shared Streamlit view-model builders for Phase 3."""
+"""Shared Streamlit view-model builders."""
 
 from __future__ import annotations
 
@@ -66,3 +66,4 @@ class DashboardDataLoader:
         if cadence == "monthly":
             return report_index.latest_monthly
         return report_index.latest_monthly or report_index.latest_weekly
+

@@ -1,4 +1,4 @@
-"""Phase 2 reporting pipeline, public filtering, and narrative generation."""
+"""Reporting pipeline, public filtering, and narrative generation."""
 
 from mexico_linkedin_jobs_portfolio.reporting.openai_narration import (
     NarrationClient,
@@ -24,3 +24,4 @@ __all__ = [
     "render_markdown",
     "write_public_csv",
 ]
+

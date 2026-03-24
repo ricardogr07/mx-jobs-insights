@@ -1,4 +1,4 @@
-"""Phase 3 public-site and dashboard models."""
+"""Public-site and dashboard models."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from mexico_linkedin_jobs_portfolio.models.reporting import (
 
 @dataclass(frozen=True, slots=True)
 class SiteReportEntry:
-    """One indexed Phase 2 report artifact bundle."""
+    """One indexed report artifact bundle."""
 
     summary: ReportRunSummary
     metrics: ReportMetrics
@@ -54,7 +54,7 @@ class SiteReportEntry:
 
 @dataclass(frozen=True, slots=True)
 class SiteReportIndex:
-    """Indexed Phase 2 report artifacts grouped for public site generation."""
+    """Indexed report artifacts grouped for public site generation."""
 
     entries: tuple[SiteReportEntry, ...]
     weekly_entries: tuple[SiteReportEntry, ...]
@@ -98,7 +98,7 @@ class SiteArtifacts:
 
 @dataclass(frozen=True, slots=True)
 class SiteRunSummary:
-    """CLI-facing summary of one Phase 3 site-generation run."""
+    """CLI-facing summary of one site-generation run."""
 
     command_name: str
     report_root: Path
@@ -113,7 +113,7 @@ class SiteRunSummary:
     generated_page_count: int = 0
     copied_asset_count: int = 0
     run_summary_path: Path | None = None
-    status: str = "planned_shell"
+    status: str = "not_run"
     notes: tuple[str, ...] = ()
 
     def to_display_dict(self) -> dict[str, Any]:
@@ -147,5 +147,10 @@ class DashboardState:
     report_index: SiteReportIndex
     selected_entry: SiteReportEntry | None
     selected_latest_jobs: tuple[LatestJobRecord, ...]
+
+
+
+
+
 
 

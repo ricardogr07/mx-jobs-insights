@@ -1,4 +1,4 @@
-"""Google Cloud Storage publication helpers for Phase 5 cloud delivery."""
+"""Google Cloud Storage publication helpers."""
 
 from __future__ import annotations
 
@@ -148,3 +148,4 @@ class CloudArtifactPublisher:
     def _object_name(cloud_config: CloudEnvironmentConfig, category: str, relative: str) -> str:
         segments = [segment for segment in (cloud_config.normalized_gcs_prefix, category, relative) if segment]
         return "/".join(segment.strip("/") for segment in segments)
+

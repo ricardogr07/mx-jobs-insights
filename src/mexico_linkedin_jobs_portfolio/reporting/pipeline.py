@@ -1,4 +1,4 @@
-"""End-to-end report generation over curated Phase 1 outputs."""
+"""End-to-end report generation over curated outputs."""
 
 from __future__ import annotations
 
@@ -228,3 +228,4 @@ class ReportPipeline:
             html_paths=artifacts.html_paths if artifacts is not None else None,
             notes=notes,
         )
+

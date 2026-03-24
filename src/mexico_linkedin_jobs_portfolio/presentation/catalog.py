@@ -1,4 +1,4 @@
-"""Shared readers for Phase 2 report artifacts consumed by Phase 3 surfaces."""
+"""Shared readers for report artifacts consumed by site and dashboard surfaces."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ _FORBIDDEN_PUBLIC_COLUMNS = {"company_name", "job_url", "description_text", "job
 
 
 class ReportArtifactIndexReader:
-    """Read and validate completed Phase 2 report artifacts for Phase 3 consumers."""
+    """Read and validate completed report artifacts for site and dashboard consumers."""
 
     def load(self, report_root: Path) -> SiteReportIndex:
         report_root = report_root.expanduser().resolve(strict=False)
@@ -102,3 +102,5 @@ class ReportArtifactIndexReader:
                 raise ValueError(
                     f"Report artifact bundle at {summary.artifact_dir} contains an empty {locale} report."
                 )
+
+

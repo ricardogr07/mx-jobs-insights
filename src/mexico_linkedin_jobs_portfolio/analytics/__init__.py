@@ -1,4 +1,4 @@
-"""Analytics helpers for Phase 2 report generation."""
+"""Analytics helpers for report generation."""
 
 from mexico_linkedin_jobs_portfolio.analytics.dataset import (
     CuratedDataset,
@@ -23,3 +23,4 @@ __all__ = [
     "resolve_closed_period",
     "resolve_reference_date",
 ]
+

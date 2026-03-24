@@ -1,4 +1,4 @@
-"""Public CSV projection helpers for Phase 2 report artifacts."""
+"""Public CSV projection helpers for report artifacts."""
 
 from __future__ import annotations
 
@@ -63,3 +63,4 @@ def write_public_csv(rows: tuple[PublicJobRecord, ...], path: Path) -> None:
 def _build_public_job_key(job_id: str, public_key_salt: str) -> str:
     digest = hashlib.sha256(f"{public_key_salt}:{job_id}".encode()).hexdigest()
     return digest
+

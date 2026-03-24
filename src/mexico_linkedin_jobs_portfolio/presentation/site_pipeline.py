@@ -1,4 +1,4 @@
-"""End-to-end public-site generation from Phase 2 report artifacts."""
+"""End-to-end public-site generation from report artifacts."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ class SitePipeline:
 
         notes = [
             f"Read {report_index.report_count} completed report bundle(s) from {config.report_root_resolved}.",
-            "Site generation uses only Phase 2 report artifacts and public CSV downloads.",
+            "Site generation uses completed report artifacts and public CSV downloads only.",
         ]
         if config.dry_run:
             notes.append("Dry run resolved the public site index without writing MkDocs source pages.")
@@ -215,3 +215,5 @@ class SitePipeline:
             status=status,
             notes=notes,
         )
+
+

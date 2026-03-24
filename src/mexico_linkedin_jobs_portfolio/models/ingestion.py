@@ -60,7 +60,7 @@ class CanonicalSourceRunRecord:
 
 @dataclass(frozen=True, slots=True)
 class WorkspaceValidationResult:
-    """Describe whether the local upstream workspace satisfies the Phase-1 source contract."""
+    """Describe whether the local upstream workspace satisfies the documented source contract."""
 
     requested_source_mode: SourceMode
     upstream_root: Path
@@ -108,7 +108,7 @@ class WorkspaceValidationResult:
 
 @dataclass(frozen=True, slots=True)
 class IngestionRunSummary:
-    """Describe the current ingestion or curation shell state for review and dry runs."""
+    """Describe the current ingestion or curation run state for review and dry runs."""
 
     command_name: str
     source_mode: SourceMode
@@ -120,7 +120,7 @@ class IngestionRunSummary:
     entity_count: int = 0
     duckdb_path: Path | None = None
     parquet_root: Path | None = None
-    status: str = "planned_shell"
+    status: str = "not_run"
     notes: tuple[str, ...] = ()
 
     def to_display_dict(self) -> dict[str, Any]:
@@ -130,3 +130,6 @@ class IngestionRunSummary:
         payload["notes"] = list(self.notes)
         payload["parquet_root"] = str(self.parquet_root) if self.parquet_root is not None else None
         return payload
+
+
+

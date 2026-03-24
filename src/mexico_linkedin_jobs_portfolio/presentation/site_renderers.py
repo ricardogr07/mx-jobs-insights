@@ -1,4 +1,4 @@
-"""Markdown renderers for Phase 3 public site pages."""
+"""Markdown renderers for public site pages."""
 
 from __future__ import annotations
 
@@ -26,8 +26,8 @@ def render_landing_page(
     )
     intro = _label(
         locale_coverage,
-        "This public site is generated from reviewed weekly and monthly report artifacts.",
-        "Este sitio publico se genera a partir de artefactos semanales y mensuales ya revisados.",
+        "This public site is generated from completed weekly and monthly report artifacts.",
+        "Este sitio publico se genera a partir de artefactos semanales y mensuales ya generados.",
     )
     lines = [f"# {title}", "", intro, ""]
     lines.extend(
@@ -211,14 +211,14 @@ def render_methodology_page(*, locale_coverage: tuple[str, ...]) -> str:
         [
             _label(
                 locale_coverage,
-                "This public site is generated from Phase 2 report artifacts, not from direct raw-source reads.",
-                "Este sitio publico se genera a partir de artefactos de la fase 2 y no desde lecturas directas de las fuentes crudas.",
+                "This public site is generated from completed report artifacts, not from direct raw-source reads.",
+                "Este sitio publico se genera a partir de artefactos de reportes ya generados y no desde lecturas directas de las fuentes crudas.",
             ),
             "",
             f"## {_label(locale_coverage, 'Pipeline', 'Pipeline')}",
             f"- {_label(locale_coverage, 'Upstream source data is normalized into curated DuckDB and Parquet outputs.', 'Los datos fuente se normalizan a salidas curadas en DuckDB y Parquet.')}",
             f"- {_label(locale_coverage, 'Closed weekly and monthly report artifacts are generated from curated storage.', 'Los artefactos semanales y mensuales se generan a partir del almacenamiento curado.')}",
-            f"- {_label(locale_coverage, 'Phase 3 copies only public-safe CSV downloads and HTML report snapshots into the public site source.', 'La fase 3 copia solo descargas CSV seguras para publico y snapshots HTML al sitio publico.')}",
+            f"- {_label(locale_coverage, 'Site generation copies only public-safe CSV downloads and HTML report snapshots into the public site source.', 'La generacion del sitio copia solo descargas CSV seguras para publico y snapshots HTML al sitio publico.')}",
             "",
             f"## {_label(locale_coverage, 'Public boundary', 'Limite publico')}",
             f"- {_label(locale_coverage, 'Row-level public downloads exclude company, URL, raw descriptions, raw job IDs, and raw OpenAI payloads.', 'Las descargas publicas excluyen empresa, URL, descripciones crudas, IDs de vacante crudos y payloads crudos de OpenAI.')}",
@@ -320,3 +320,10 @@ def _label(locale_coverage: tuple[str, ...], en: str, es: str) -> str:
     if locale_coverage == ("es",):
         return es
     return en
+
+
+
+
+
+
+

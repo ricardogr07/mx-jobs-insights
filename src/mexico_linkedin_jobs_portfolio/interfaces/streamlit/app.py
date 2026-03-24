@@ -1,4 +1,4 @@
-"""Local-first Streamlit dashboard for Phase 3."""
+"""Local-first Streamlit dashboard."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def main() -> None:
 
     st.title("Mexico LinkedIn Jobs Portfolio")
     st.caption(
-        "Local-first dashboard over curated DuckDB/Parquet data and reviewed Phase 2 report artifacts."
+        "Local-first dashboard over curated DuckDB/Parquet data and completed report artifacts."
     )
 
     loader = DashboardDataLoader()
@@ -33,7 +33,7 @@ def main() -> None:
         st,
         label="Report root",
         default_value=DEFAULT_REPORT_ROOT,
-        help_text="Directory containing completed Phase 2 report bundles.",
+        help_text="Directory containing completed report bundles.",
     )
     curated_root = _sidebar_path_input(
         st,
@@ -307,6 +307,9 @@ def _inject_css(st) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
 
 
 

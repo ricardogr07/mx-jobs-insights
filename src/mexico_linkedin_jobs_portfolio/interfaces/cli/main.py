@@ -1,4 +1,4 @@
-"""CLI entrypoints for Phase 1-4 ingestion, reporting, site generation, and automation."""
+"""CLI entrypoints for ingestion, reporting, site generation, and automation."""
 
 from __future__ import annotations
 
@@ -57,13 +57,13 @@ from mexico_linkedin_jobs_portfolio.sources import (
 
 
 def add_shared_arguments(parser: argparse.ArgumentParser) -> None:
-    """Attach the common Phase 1 shell arguments used by ingest and curate."""
+    """Attach the shared source arguments used by ingest and curate."""
 
     parser.add_argument(
         "--source",
         choices=SOURCE_MODES,
         default="auto",
-        help="Planned source selection mode.",
+        help="Source selection mode.",
     )
     parser.add_argument(
         "--upstream-root",
@@ -73,7 +73,7 @@ def add_shared_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print the current shell contract without attempting source reads or curated writes.",
+        help="Print the current command summary without attempting durable writes.",
     )
 
 
@@ -83,10 +83,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="mx-jobs-insights")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    ingest_parser = subparsers.add_parser("ingest", help="Planned ingestion shell.")
+    ingest_parser = subparsers.add_parser("ingest", help="Inspect the upstream workspace and canonical source summary.")
     add_shared_arguments(ingest_parser)
 
-    curate_parser = subparsers.add_parser("curate", help="Planned canonical curation shell.")
+    curate_parser = subparsers.add_parser("curate", help="Normalize upstream records and write curated storage.")
     add_shared_arguments(curate_parser)
     curate_parser.add_argument(
         "--curated-root",
@@ -95,7 +95,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     report_parser = subparsers.add_parser(
-        "report", help="Generate Phase 2 aggregate reports from curated data."
+        "report", help="Generate aggregate reports from curated data."
     )
     report_parser.add_argument(
         "--cadence",
@@ -131,12 +131,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     site_parser = subparsers.add_parser(
-        "site", help="Generate Phase 3 public MkDocs source from existing report artifacts."
+        "site", help="Generate public MkDocs source from existing report artifacts."
     )
     site_parser.add_argument(
         "--report-root",
         default="artifacts/reports",
-        help="Directory containing completed Phase 2 report artifacts.",
+        help="Directory containing completed report artifacts.",
     )
     site_parser.add_argument(
         "--docs-root",
@@ -156,7 +156,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     pipeline_parser = subparsers.add_parser(
-        "pipeline", help="Run the Phase 4 automation entrypoint over the existing pipeline seams."
+        "pipeline", help="Run the full automation entrypoint over the existing pipeline seams."
     )
     add_shared_arguments(pipeline_parser)
     pipeline_parser.add_argument(
@@ -212,7 +212,7 @@ def build_curated_config(args: argparse.Namespace) -> CuratedStorageConfig:
 
 
 def build_report_config(args: argparse.Namespace) -> ReportConfig:
-    """Translate parsed CLI arguments and environment into the Phase 2 report config."""
+    """Translate parsed CLI arguments and environment into the report config."""
 
     as_of_date = date.fromisoformat(args.as_of_date) if args.as_of_date else None
     return ReportConfig(
@@ -230,7 +230,7 @@ def build_report_config(args: argparse.Namespace) -> ReportConfig:
 
 
 def build_site_config(args: argparse.Namespace) -> SiteConfig:
-    """Translate parsed CLI arguments into the Phase 3 site-generation config."""
+    """Translate parsed CLI arguments into the site-generation config."""
 
     return SiteConfig(
         report_root=Path(args.report_root),
@@ -241,7 +241,7 @@ def build_site_config(args: argparse.Namespace) -> SiteConfig:
 
 
 def build_pipeline_config(args: argparse.Namespace) -> PipelineConfig:
-    """Translate parsed CLI arguments and environment into the Phase 4 pipeline config."""
+    """Translate parsed CLI arguments and environment into the pipeline config."""
 
     as_of_date = date.fromisoformat(args.as_of_date) if args.as_of_date else None
     return PipelineConfig(
@@ -292,17 +292,17 @@ def build_run_summary(
     source_run_count: int = 0,
     write_result: CuratedWriteResult | None = None,
 ) -> IngestionRunSummary:
-    """Return a summary describing the current Phase 1 command state."""
+    """Return a summary describing the current ingest or curate command state."""
 
     if dry_run:
         notes = [
-            "Phase 1 shell only; source adapters and curated writes are still landing incrementally.",
-            "Use this dry run to validate command parsing and the upstream workspace contract.",
+            "Dry run validated command parsing, source loading, and the upstream workspace contract.",
+            "Use this mode to inspect source readiness without writing curated outputs.",
         ]
     else:
         notes = [
-            "Phase 1 now includes the first non-dry-run curated write path.",
-            "Use this command to validate end-to-end source loading, canonical normalization, and curated storage writes.",
+            "This command writes curated storage from the resolved upstream source.",
+            "Use it to validate end-to-end source loading, canonical normalization, and storage writes.",
         ]
     notes.extend(validation.notes)
 
@@ -324,7 +324,7 @@ def build_run_summary(
         elif resolved_source_mode == "csv":
             notes.append("CSV ingestion is now active for validation.")
         else:
-            notes.append("Concrete source adapters land in steps 1.4 and 1.5.")
+            notes.append("No concrete source adapter was selected.")
     else:
         if dry_run and source_run_count:
             status = "curation_dry_run_ready"
@@ -397,7 +397,7 @@ def execute_curate_write(
     validation: WorkspaceValidationResult,
     curated_config: CuratedStorageConfig,
 ) -> tuple[IngestionRunSummary, int]:
-    """Execute the first non-dry-run curated write path for Phase 1."""
+    """Execute the curated write path."""
 
     if not validation.is_valid:
         return build_run_summary("curate", workspace, validation, dry_run=False), 1
@@ -418,7 +418,7 @@ def execute_curate_write(
 
 
 def execute_report(args: argparse.Namespace) -> tuple[dict[str, object], int]:
-    """Execute the Phase 2 report path and return the CLI payload plus exit code."""
+    """Execute the report path and return the CLI payload plus exit code."""
 
     report_config = build_report_config(args)
     summary, exit_code = ReportPipeline().run(report_config)
@@ -434,7 +434,7 @@ def execute_report(args: argparse.Namespace) -> tuple[dict[str, object], int]:
 
 
 def execute_site(args: argparse.Namespace) -> tuple[dict[str, object], int]:
-    """Execute the Phase 3 site path and return the CLI payload plus exit code."""
+    """Execute the site path and return the CLI payload plus exit code."""
 
     site_config = build_site_config(args)
     summary, exit_code = SitePipeline().run(site_config)
@@ -444,7 +444,7 @@ def execute_site(args: argparse.Namespace) -> tuple[dict[str, object], int]:
 
 
 def execute_pipeline(args: argparse.Namespace) -> tuple[dict[str, object], int]:
-    """Execute the Phase 4 automation path and return the CLI payload plus exit code."""
+    """Execute the automation path and return the CLI payload plus exit code."""
 
     pipeline_config = build_pipeline_config(args)
     summary, exit_code = PipelineOrchestrator().run(pipeline_config)
@@ -458,7 +458,7 @@ def execute_pipeline(args: argparse.Namespace) -> tuple[dict[str, object], int]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the current Phase 1-4 CLI commands."""
+    """Run the repo CLI commands."""
 
     parser = build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
@@ -480,7 +480,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "ingest" and not args.dry_run:
         print(
-            "Phase 1 ingest stays summary-only. Re-run with --dry-run, or use curate without --dry-run to write curated outputs.",
+            "Ingest is summary-only. Re-run with --dry-run, or use curate without --dry-run to write curated outputs.",
             file=sys.stderr,
         )
         return 2
@@ -505,5 +505,30 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

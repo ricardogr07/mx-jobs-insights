@@ -1,4 +1,4 @@
-"""Phase 2 aggregate KPI builders."""
+"""Aggregate KPI builders."""
 
 from __future__ import annotations
 
@@ -155,3 +155,4 @@ def _experience_bucket(value: float | None) -> str:
     if value <= 5:
         return "4-5 years"
     return "6+ years"
+

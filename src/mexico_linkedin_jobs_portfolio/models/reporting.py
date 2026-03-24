@@ -1,4 +1,4 @@
-"""Phase 2 reporting models shared across analytics, rendering, and CLI layers."""
+"""Reporting models shared across analytics, rendering, and CLI layers."""
 
 from __future__ import annotations
 
@@ -267,7 +267,7 @@ class ReportArtifacts:
 
 @dataclass(frozen=True, slots=True)
 class ReportRunSummary:
-    """CLI-facing summary of one Phase 2 report run."""
+    """CLI-facing summary of one report run."""
 
     command_name: str
     cadence: ReportCadence
@@ -285,7 +285,7 @@ class ReportRunSummary:
     source_run_count: int = 0
     public_row_count: int = 0
     narration_status: str = "not_requested"
-    status: str = "planned_shell"
+    status: str = "not_run"
     artifact_dir: Path | None = None
     metrics_path: Path | None = None
     public_csv_path: Path | None = None
@@ -359,7 +359,7 @@ class ReportRunSummary:
             source_run_count=int(payload.get("source_run_count", 0)),
             public_row_count=int(payload.get("public_row_count", 0)),
             narration_status=str(payload.get("narration_status", "not_requested")),
-            status=str(payload.get("status", "planned_shell")),
+            status=str(payload.get("status", "not_run")),
             artifact_dir=Path(str(payload["artifact_dir"])) if payload.get("artifact_dir") else None,
             metrics_path=Path(str(payload["metrics_path"])) if payload.get("metrics_path") else None,
             public_csv_path=(
@@ -388,3 +388,7 @@ def _parse_dimension_counts(values: Any) -> tuple[DimensionCount, ...]:
     return tuple(
         DimensionCount.from_display_dict(item) for item in values if isinstance(item, dict)
     )
+
+
+
+

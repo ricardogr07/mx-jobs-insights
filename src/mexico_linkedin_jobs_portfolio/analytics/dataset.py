@@ -37,7 +37,7 @@ ORDER BY o.observed_at, o.job_id, COALESCE(o.source_run_id, '')
 
 @dataclass(frozen=True, slots=True)
 class JoinedObservationRecord:
-    """Joined observation/entity row used for Phase 2 metrics and Phase 3 views."""
+    """Joined observation/entity row used for report metrics and dashboard views."""
 
     job_id: str
     observed_at: object
@@ -144,3 +144,4 @@ def _parse_tech_stack_json(value: str | None) -> tuple[str, ...]:
     if not isinstance(parsed, list):
         return ()
     return tuple(str(item) for item in parsed if str(item).strip())
+

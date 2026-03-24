@@ -1,4 +1,4 @@
-"""BigQuery export helpers for Phase 5 cloud delivery."""
+"""BigQuery export helpers."""
 
 from __future__ import annotations
 
@@ -169,4 +169,5 @@ class BigQueryExporter:
         if isinstance(value, dict):
             return {str(key): BigQueryExporter._normalize_value(item) for key, item in value.items()}
         return value
+
 

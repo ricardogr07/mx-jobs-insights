@@ -1,4 +1,4 @@
-"""Localized Markdown and HTML renderers for Phase 2 reports."""
+"""Localized Markdown and HTML renderers for report artifacts."""
 
 from __future__ import annotations
 
@@ -234,3 +234,4 @@ def _format_period_label(metrics: ReportMetrics, locale: str) -> str:
 
     month_name = _MONTH_NAMES[locale][metrics.period.start_date.month - 1]
     return f"{month_name} {metrics.period.start_date.year}"
+
