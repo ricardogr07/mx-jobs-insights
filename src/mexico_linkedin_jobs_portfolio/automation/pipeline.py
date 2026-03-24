@@ -1,4 +1,4 @@
-"""Phase 4 automation orchestration over curate, report, site, and docs validation."""
+"""Automation orchestration over curate, report, site, docs validation, and optional cloud delivery."""
 
 from __future__ import annotations
 
@@ -11,9 +11,13 @@ from pathlib import Path
 from uuid import uuid4
 
 from mexico_linkedin_jobs_portfolio.analytics import resolve_closed_period
+from mexico_linkedin_jobs_portfolio.automation.upstream_sync import GitUpstreamWorkspaceSeeder
+from mexico_linkedin_jobs_portfolio.cloud import BigQueryExporter, CloudArtifactPublisher
 from mexico_linkedin_jobs_portfolio.config import PipelineConfig
 from mexico_linkedin_jobs_portfolio.curation import DuckDBCuratedStore, build_curated_batch
 from mexico_linkedin_jobs_portfolio.models import (
+    BigQueryExportResult,
+    CloudSyncResult,
     IngestionRunSummary,
     PipelineRunSummary,
     WorkspaceValidationResult,
@@ -42,8 +46,6 @@ class MkDocsBuildRunner:
         ).expanduser().resolve(strict=False)
 
     def build(self, docs_root: Path) -> tuple[Path | None, str, tuple[str, ...], int]:
-        """Run `mkdocs build --strict` for the provided docs root."""
-
         if not self.config_path.is_file():
             return None, "mkdocs_config_missing", (f"Missing MkDocs config at {self.config_path}.",), 1
 
@@ -83,8 +85,6 @@ class MkDocsBuildRunner:
         return site_output_root if result.returncode == 0 else None, status, notes, result.returncode
 
     def _render_config(self, docs_root: Path, site_output_root: Path) -> str:
-        """Return a temporary MkDocs config that points at a custom docs root."""
-
         lines = self.config_path.read_text(encoding="utf-8").splitlines()
         rendered: list[str] = []
         docs_dir_replaced = False
@@ -121,7 +121,7 @@ class MkDocsBuildRunner:
 
 
 class PipelineOrchestrator:
-    """Sequence Phase 1-3 primitives into the Phase 4 automation entrypoint."""
+    """Sequence local pipeline primitives into automation and optional cloud delivery."""
 
     def __init__(
         self,
@@ -130,17 +130,54 @@ class PipelineOrchestrator:
         report_pipeline: ReportPipeline | None = None,
         site_pipeline: SitePipeline | None = None,
         docs_builder: MkDocsBuildRunner | None = None,
+        cloud_storage_publisher: CloudArtifactPublisher | None = None,
+        bigquery_exporter: BigQueryExporter | None = None,
+        upstream_seeder: GitUpstreamWorkspaceSeeder | None = None,
     ) -> None:
         self.workspace_provider = workspace_provider or LocalUpstreamWorkspaceProvider()
         self.report_pipeline = report_pipeline or ReportPipeline()
         self.site_pipeline = site_pipeline or SitePipeline()
         self.docs_builder = docs_builder or MkDocsBuildRunner()
+        self.cloud_storage_publisher = cloud_storage_publisher or CloudArtifactPublisher()
+        self.bigquery_exporter = bigquery_exporter or BigQueryExporter()
+        self.upstream_seeder = upstream_seeder or GitUpstreamWorkspaceSeeder()
 
     def run(self, config: PipelineConfig) -> tuple[PipelineRunSummary, int]:
         workspace = config.workspace
-        validation = self.workspace_provider.validate(workspace)
         period = resolve_closed_period(config.cadence, config.as_of_date)
-        notes = list(validation.notes)
+        validation = self.workspace_provider.validate(workspace)
+        notes: list[str] = []
+        cloud_environment = config.cloud_environment
+        cloud_requested = cloud_environment.cloud_requested
+
+        if (
+            not config.dry_run
+            and cloud_requested
+            and not validation.is_valid
+            and (not validation.root_exists or not validation.is_directory)
+        ):
+            try:
+                _, seeding_notes = self.upstream_seeder.ensure_workspace(
+                    workspace,
+                    repo_url=config.upstream_repo_url,
+                )
+                notes.extend(seeding_notes)
+                validation = self.workspace_provider.validate(workspace)
+            except Exception as exc:
+                notes.extend(validation.notes)
+                notes.append(f"Managed upstream workspace seeding failed: {exc}")
+                summary = self._build_summary(
+                    config,
+                    period=period,
+                    validation=validation,
+                    workspace_status="workspace_seed_failed",
+                    cloud_requested=cloud_requested,
+                    status="pipeline_workspace_seed_failed",
+                    notes=tuple(notes + list(validation.errors)),
+                )
+                return self._finalize(config, summary, 1)
+
+        notes.extend(validation.notes)
 
         if not validation.is_valid:
             summary = self._build_summary(
@@ -148,8 +185,30 @@ class PipelineOrchestrator:
                 period=period,
                 validation=validation,
                 workspace_status=validation.status,
+                cloud_requested=cloud_requested,
                 status="pipeline_workspace_invalid",
                 notes=tuple(notes + list(validation.errors)),
+            )
+            return self._finalize(config, summary, 1)
+
+        if not config.dry_run and cloud_requested and not cloud_environment.is_configured:
+            missing_cloud = list(config.missing_cloud_runtime_env())
+            notes.append(
+                "Phase 5 cloud delivery was requested because GCP environment variables were present."
+            )
+            notes.append(
+                f"Missing cloud runtime env: {', '.join(missing_cloud)}."
+            )
+            summary = self._build_summary(
+                config,
+                period=period,
+                validation=validation,
+                workspace_status=validation.status,
+                cloud_requested=cloud_requested,
+                cloud_storage_status="cloud_config_invalid",
+                bigquery_status="cloud_config_invalid",
+                status="pipeline_cloud_config_invalid",
+                notes=tuple(notes),
             )
             return self._finalize(config, summary, 1)
 
@@ -161,6 +220,20 @@ class PipelineOrchestrator:
         )
 
         if config.dry_run:
+            cloud_storage_status = (
+                "cloud_sync_planned"
+                if cloud_requested and cloud_environment.is_configured
+                else "not_requested"
+            )
+            bigquery_status = (
+                "bigquery_export_planned"
+                if cloud_requested and cloud_environment.is_configured
+                else "not_requested"
+            )
+            if cloud_storage_status == "cloud_sync_planned":
+                notes.append(
+                    f"Dry run detected a complete cloud runtime for bucket {cloud_environment.gcs_bucket} and BigQuery datasets {cloud_environment.bigquery_private_dataset}/{cloud_environment.bigquery_public_dataset}."
+                )
             notes.append("Dry run validated workspace discovery and canonical batching only.")
             summary = self._build_summary(
                 config,
@@ -171,6 +244,9 @@ class PipelineOrchestrator:
                 report_status="report_dry_run_planned",
                 site_status="site_dry_run_planned",
                 docs_status="mkdocs_build_planned",
+                cloud_requested=cloud_requested,
+                cloud_storage_status=cloud_storage_status,
+                bigquery_status=bigquery_status,
                 source_run_count=len(batch.source_runs),
                 observation_count=adapter_summary.observation_count,
                 status="pipeline_dry_run_ready",
@@ -191,8 +267,9 @@ class PipelineOrchestrator:
                 workspace_status=validation.status,
                 curate_status="curation_written",
                 report_status=report_summary.status,
+                cloud_requested=cloud_requested,
                 source_run_count=write_result.source_run_count,
-                observation_count=write_result.observation_count,
+                observation_count=adapter_summary.observation_count,
                 job_count=report_summary.job_count,
                 public_row_count=report_summary.public_row_count,
                 duckdb_path=write_result.duckdb_path,
@@ -220,6 +297,7 @@ class PipelineOrchestrator:
                 curate_status="curation_written",
                 report_status=report_summary.status,
                 site_status=site_summary.status,
+                cloud_requested=cloud_requested,
                 source_run_count=write_result.source_run_count,
                 observation_count=report_summary.observation_count,
                 job_count=report_summary.job_count,
@@ -246,6 +324,7 @@ class PipelineOrchestrator:
                 report_status=report_summary.status,
                 site_status=site_summary.status,
                 docs_status=docs_status,
+                cloud_requested=cloud_requested,
                 source_run_count=write_result.source_run_count,
                 observation_count=report_summary.observation_count,
                 job_count=report_summary.job_count,
@@ -259,6 +338,102 @@ class PipelineOrchestrator:
             )
             return self._finalize(config, summary, 1)
 
+        cloud_sync: CloudSyncResult | None = None
+        bigquery_export: BigQueryExportResult | None = None
+        cloud_storage_status = "not_requested"
+        bigquery_status = "not_requested"
+        cloud_ready = False
+        status = "pipeline_written"
+        publish_ready = True
+
+        if cloud_requested and cloud_environment.is_configured:
+            diagnostics_paths = tuple(
+                path
+                for path in (
+                    report_summary.run_summary_path,
+                    site_summary.run_summary_path,
+                    config.pipeline_artifacts.run_summary_path,
+                )
+                if path is not None
+            )
+            try:
+                cloud_sync = self.cloud_storage_publisher.publish(
+                    cloud_environment,
+                    curated_root=config.curated_storage.resolved_root(),
+                    report_root=config.report_config.report_storage.resolved_root(),
+                    site_output_root=site_output_root,
+                    diagnostics_paths=diagnostics_paths,
+                )
+                cloud_storage_status = cloud_sync.status
+                notes.extend(cloud_sync.notes)
+            except Exception as exc:
+                notes.append(f"Cloud storage publish failed: {exc}")
+                summary = self._build_summary(
+                    config,
+                    period=period,
+                    validation=validation,
+                    workspace_status=validation.status,
+                    curate_status="curation_written",
+                    report_status=report_summary.status,
+                    site_status=site_summary.status,
+                    docs_status=docs_status,
+                    cloud_requested=True,
+                    cloud_storage_status="gcs_publish_failed",
+                    bigquery_status="not_run",
+                    source_run_count=write_result.source_run_count,
+                    observation_count=report_summary.observation_count,
+                    job_count=report_summary.job_count,
+                    public_row_count=report_summary.public_row_count,
+                    duckdb_path=write_result.duckdb_path,
+                    report_run_summary_path=report_summary.run_summary_path,
+                    site_run_summary_path=site_summary.run_summary_path,
+                    site_output_root=site_output_root,
+                    status="pipeline_cloud_storage_failed",
+                    notes=tuple(notes),
+                )
+                return self._finalize(config, summary, 1)
+
+            try:
+                bigquery_export = self.bigquery_exporter.export(
+                    cloud_environment,
+                    duckdb_path=write_result.duckdb_path,
+                    metrics_path=report_summary.metrics_path,
+                    public_csv_path=report_summary.public_csv_path,
+                    report_run_summary_path=report_summary.run_summary_path,
+                )
+                bigquery_status = bigquery_export.status
+                notes.extend(bigquery_export.notes)
+            except Exception as exc:
+                notes.append(f"BigQuery export failed: {exc}")
+                summary = self._build_summary(
+                    config,
+                    period=period,
+                    validation=validation,
+                    workspace_status=validation.status,
+                    curate_status="curation_written",
+                    report_status=report_summary.status,
+                    site_status=site_summary.status,
+                    docs_status=docs_status,
+                    cloud_requested=True,
+                    cloud_storage_status=cloud_storage_status,
+                    bigquery_status="bigquery_export_failed",
+                    source_run_count=write_result.source_run_count,
+                    observation_count=report_summary.observation_count,
+                    job_count=report_summary.job_count,
+                    public_row_count=report_summary.public_row_count,
+                    duckdb_path=write_result.duckdb_path,
+                    report_run_summary_path=report_summary.run_summary_path,
+                    site_run_summary_path=site_summary.run_summary_path,
+                    site_output_root=site_output_root,
+                    cloud_sync=cloud_sync,
+                    status="pipeline_bigquery_failed",
+                    notes=tuple(notes),
+                )
+                return self._finalize(config, summary, 1)
+
+            cloud_ready = True
+            status = "pipeline_cloud_written"
+
         summary = self._build_summary(
             config,
             period=period,
@@ -268,6 +443,9 @@ class PipelineOrchestrator:
             report_status=report_summary.status,
             site_status=site_summary.status,
             docs_status=docs_status,
+            cloud_requested=cloud_requested,
+            cloud_storage_status=cloud_storage_status,
+            bigquery_status=bigquery_status,
             source_run_count=write_result.source_run_count,
             observation_count=report_summary.observation_count,
             job_count=report_summary.job_count,
@@ -276,8 +454,11 @@ class PipelineOrchestrator:
             report_run_summary_path=report_summary.run_summary_path,
             site_run_summary_path=site_summary.run_summary_path,
             site_output_root=site_output_root,
-            publish_ready=True,
-            status="pipeline_written",
+            publish_ready=publish_ready,
+            cloud_ready=cloud_ready,
+            cloud_sync=cloud_sync,
+            bigquery_export=bigquery_export,
+            status=status,
             notes=tuple(notes),
         )
         return self._finalize(config, summary, 0)
@@ -336,15 +517,21 @@ class PipelineOrchestrator:
         report_status: str = "not_run",
         site_status: str = "not_run",
         docs_status: str = "not_run",
+        cloud_storage_status: str = "not_requested",
+        bigquery_status: str = "not_requested",
         source_run_count: int = 0,
         observation_count: int = 0,
         job_count: int = 0,
         public_row_count: int = 0,
         publish_ready: bool = False,
+        cloud_ready: bool = False,
+        cloud_requested: bool = False,
         duckdb_path: Path | None = None,
         report_run_summary_path: Path | None = None,
         site_run_summary_path: Path | None = None,
         site_output_root: Path | None = None,
+        cloud_sync: CloudSyncResult | None = None,
+        bigquery_export: BigQueryExportResult | None = None,
     ) -> PipelineRunSummary:
         return PipelineRunSummary(
             command_name="pipeline",
@@ -371,11 +558,17 @@ class PipelineOrchestrator:
             report_status=report_status,
             site_status=site_status,
             docs_status=docs_status,
+            cloud_storage_status=cloud_storage_status,
+            bigquery_status=bigquery_status,
             publish_ready=publish_ready,
+            cloud_ready=cloud_ready,
+            cloud_requested=cloud_requested,
             duckdb_path=duckdb_path,
             report_run_summary_path=report_run_summary_path,
             site_run_summary_path=site_run_summary_path,
             site_output_root=site_output_root,
+            cloud_sync=cloud_sync,
+            bigquery_export=bigquery_export,
             status=status,
             notes=notes,
         )
@@ -397,15 +590,3 @@ class PipelineOrchestrator:
             encoding="utf-8",
         )
         return finalized, exit_code
-
-
-
-
-
-
-
-
-
-
-
-
