@@ -94,6 +94,21 @@ Use subagents to parallelize well-scoped work, not to outsource integration deci
 - Write scope: tests, `docs/development/`, `docs/codex/`, `mkdocs.yml`.
 - Use when: validating the Phase 3 site and dashboard contract without changing core UI behavior.
 
+### `pipeline_orchestrator`
+- Purpose: own the Phase 4 automation CLI, orchestration summaries, and fixture-backed pipeline integration tests.
+- Write scope: config models, automation modules, CLI orchestration wiring, pipeline summary models, tests.
+- Use when: building the entrypoint that sequences curate, report, site, and docs validation.
+
+### `workflow_release`
+- Purpose: own GitHub Actions workflow definitions, upstream checkout wiring, Pages deploy, and artifact retention rules.
+- Write scope: `.github/` and automation-facing runtime docs.
+- Use when: adding or revising GitHub-native automation, schedules, or deployment contracts.
+
+### `automation_validation`
+- Purpose: own workflow assertions, automation docs, command-catalog updates, and runtime-secret guidance.
+- Write scope: tests, `docs/development/`, `docs/codex/`, and `codex/config.toml`.
+- Use when: validating the Phase 4 automation contract without editing the core orchestration or workflow behavior.
+
 ### `dashboard_site`
 - Purpose: own late-phase Streamlit dashboard and public site UX work when higher-level presentation changes are needed.
 - Write scope: dashboard code, site templates, Pages-facing docs.
@@ -116,8 +131,15 @@ Use subagents to parallelize well-scoped work, not to outsource integration deci
 - Public-first MkDocs work should stay separate from the Streamlit app shell so docs navigation does not become coupled to dashboard implementation details.
 - Validation work should keep the public site, Streamlit app, and boundary rules aligned without rewriting the implementation lanes.
 
+## Phase-4 Specialization Rule
+- Phase 4 uses the automation roles above so orchestration code, workflow release wiring, and validation/docs can move in parallel without overlapping write scopes.
+- The main agent owns the `pipeline` contract, final integration, and the reviewed commit boundaries.
+- Workflow-release work should stay separate from pipeline-core code so GitHub Actions policy changes do not rewrite orchestration logic.
+- Automation validation should focus on workflow assertions, docs, and runtime contracts after the pipeline and workflow lanes have stabilized.
+
 ## Integration Responsibility
 - Main agent validates the final step state before asking for review.
 - Main agent decides when a step is ready for approval and possible commit.
 - Subagents should return changed files, assumptions, and validation notes, not broad recaps.
+
 

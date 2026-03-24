@@ -335,10 +335,114 @@
 
 ## Phase 4: Automation
 
-- Add GitHub Actions for weekly, monthly, and manual runs.
-- Pull the latest scraper `data` branch contents into the pipeline workspace.
-- Rebuild curated data, reports, downloads, and Pages output.
-- Add failure handling, concurrency control, and artifact retention.
+### Step 4.1: Phase-4 planning and automation roles
+
+- Split Phase 4 into reviewed substeps and add Phase-4-specific subagent roles in `codex/config.toml` and `docs/codex/subagents.md`:
+  - `pipeline_orchestrator`
+  - `workflow_release`
+  - `automation_validation`
+- Add planned commands for:
+  - `pipeline --dry-run`
+  - `pipeline --cadence weekly`
+  - `pipeline --cadence monthly`
+  - `python -m mkdocs build --strict`
+- Update `PLAN.md` support sections so Public Interfaces, Subagent Plan, Test Plan, and Assumptions reflect the automation phase before implementation starts.
+
+### Step 4.2: Pipeline orchestration contract
+
+- Activate the `pipeline` CLI surface as the single orchestration entrypoint for automation.
+- `pipeline` must sequence:
+  - upstream workspace validation
+  - non-dry-run `curate`
+  - non-dry-run `report`
+  - non-dry-run `site`
+  - strict MkDocs build validation
+- Add runtime inputs:
+  - `--cadence {weekly,monthly}`
+  - `--as-of YYYY-MM-DD` optional
+  - `--source {auto,sqlite,csv}` default `auto`
+  - `--upstream-root PATH`
+  - `--curated-root PATH`
+  - `--report-root PATH`
+  - `--docs-root PATH`
+  - `--locale {en,es,all}` default `all`
+  - `--dry-run`
+- Add a pipeline run summary that records per-step status, resolved period, output roots, and final publish readiness.
+
+### Step 4.3: Automation runtime and upstream checkout contract
+
+- Standardize the GitHub Actions runtime around Python plus editable install from `.[dev]`.
+- In Actions, check out the upstream repo with a second `actions/checkout`:
+  - repository: `ricardogr07/LinkedInWebScraper`
+  - ref: `data`
+  - path: `LinkedInWebScraper`
+- The workflow must pass `--upstream-root LinkedInWebScraper` explicitly and treat that checkout as read-only.
+- Reuse the existing report env contract in Actions:
+  - secrets: `OPENAI_API_KEY`, `MX_JOBS_PUBLIC_KEY_SALT`
+  - repo variable: `MX_JOBS_OPENAI_MODEL`
+  - optional repo variable: `MX_JOBS_OPENAI_BASE_URL`
+
+### Step 4.4: Manual dispatch workflow
+
+- Add one orchestrator workflow under `.github/workflows/` with `workflow_dispatch` for manual backfills and validation runs.
+- Manual inputs:
+  - `cadence` required: `weekly` or `monthly`
+  - `as_of_date` optional
+  - `deploy_pages` boolean default `true`
+- Manual runs must call the new `pipeline` CLI.
+- If `deploy_pages` is `false`, the workflow still runs the full pipeline and strict docs build, but skips Pages upload and deploy.
+
+### Step 4.5: Scheduled weekly and monthly publication
+
+- Use the same orchestrator workflow for scheduled publication.
+- Add two explicit cron schedules:
+  - weekly: Mondays at `14:00 UTC`
+  - monthly: day `1` at `15:00 UTC`
+- Scheduled runs choose cadence internally from the triggering schedule and do not require manual inputs.
+- Weekly and monthly scheduled runs both rebuild the full public site from all report artifacts present in the workflow workspace.
+
+### Step 4.6: Pages deploy, permissions, and retention
+
+- Use artifact-based Pages deployment only; the workflow must not push commits or regenerate tracked files in the repo history.
+- Workflow permissions:
+  - `contents: read`
+  - `pages: write`
+  - `id-token: write`
+- Add workflow concurrency with one shared publish group and `cancel-in-progress: false`.
+- After `site` runs, execute `python -m mkdocs build --strict`, upload the built `site/` directory with `actions/upload-pages-artifact`, and deploy with `actions/deploy-pages`.
+- Upload a separate diagnostic artifact containing public-safe run summaries and generated report/site metadata, with retention set to `14` days.
+- Do not upload curated DuckDB, Parquet, or any private drill-down data as workflow artifacts.
+
+### Step 4.7: Reproducible automation tests and docs
+
+- Add offline tests for:
+  - pipeline CLI dry-run orchestration
+  - pipeline non-dry-run orchestration using fixture-backed upstream/report/site flows
+  - workflow YAML trigger, permission, input, and deploy-gating expectations
+  - failure propagation when upstream checkout inputs are missing or required env vars are absent
+- Add Phase 4 usage docs covering:
+  - required GitHub secrets and repo variables
+  - manual dispatch inputs
+  - schedule defaults
+  - artifact deploy behavior vs repo-tracked docs
+- Update the command catalog with the `pipeline` surface and GitHub Actions notes.
+
+### Step 4.8: Review boundary
+
+- Phase 4 closes once:
+  - `pipeline --dry-run` passes locally against fixture-backed inputs
+  - non-dry-run `pipeline --cadence weekly` and `pipeline --cadence monthly` pass locally
+  - the checked-in workflow passes static validation and repo tests
+  - Pages deploy is artifact-based and does not auto-commit generated files
+  - scheduled and manual paths share the same orchestration contract
+- Cloud hosting, Terraform, BigQuery, and non-GitHub deployment targets remain Phase 5.
+
+## Phase-4 Commit Boundaries
+- Commit 1: Phase-4 plan/docs/subagent-role expansion
+- Commit 2: pipeline CLI contract and orchestration summaries
+- Commit 3: manual-dispatch workflow and upstream checkout contract
+- Commit 4: scheduled cadence publishing and Pages artifact deploy
+- Commit 5: Phase-4 tests and automation usage docs
 
 ## Phase 5: Cloud Expansion
 
@@ -372,6 +476,19 @@
   - `--dry-run`
 - Phase 3 local app entrypoint:
   - `streamlit run src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py`
+- Phase 4 `pipeline` inputs:
+  - `--cadence {weekly,monthly}`
+  - `--as-of YYYY-MM-DD`
+  - `--source {auto,sqlite,csv}`
+  - `--upstream-root`
+  - `--curated-root`
+  - `--report-root`
+  - `--docs-root`
+  - `--locale {en,es,all}`
+  - `--dry-run`
+- Phase 4 automation runtime:
+  - required for automated published runs: `OPENAI_API_KEY`, `MX_JOBS_OPENAI_MODEL`, `MX_JOBS_PUBLIC_KEY_SALT`
+  - optional override: `MX_JOBS_OPENAI_BASE_URL`
 - Planned durable outputs:
   - curated DuckDB/Parquet
   - `metrics.json`
@@ -384,6 +501,7 @@
   - `docs/public/downloads/`
   - `docs/public/assets/`
   - `artifacts/site/run_summary.json`
+  - `artifacts/pipeline/run_summary.json`
   - GitHub Pages site assets
 
 ## Subagent Plan
@@ -402,6 +520,9 @@
   - `pages_public_ia`: MkDocs public information architecture, public pages, and archive presentation
   - `streamlit_explorer`: local-first Streamlit exploration and mixed public/private drill-down views
   - `presentation_validation`: Phase 3 tests, usage docs, and public-boundary validation
+  - `pipeline_orchestrator`: automation CLI orchestration, cross-phase pipeline summaries, and pipeline tests
+  - `workflow_release`: GitHub Actions workflows, Pages deploy, artifact retention, and upstream checkout contracts
+  - `automation_validation`: workflow tests, automation docs, and runtime-secret guidance
   - `automation_release`: GitHub Actions and deployment contracts
 - Subagents never own integration. The main agent merges results, validates behavior, and waits for approval before any commit.
 
@@ -439,8 +560,11 @@
   - Streamlit loader and view-model tests for public/private field segregation, filter behavior, and latest-period defaults
   - local app smoke tests that import or run the Streamlit entrypoint against fixture-backed curated and report outputs without exceptions
 - Phase 4:
-  - workflow tests
-  - scheduled/manual pipeline smoke tests
+  - pipeline CLI dry-run tests
+  - fixture-backed weekly and monthly pipeline tests
+  - workflow YAML trigger, input, permission, concurrency, and deploy-gating tests
+  - strict MkDocs build validation from pipeline-produced docs output
+  - scheduled/manual orchestration smoke tests
 - Phase 5:
   - container/config smoke tests only; no cloud infra rollout until later
 
@@ -456,5 +580,11 @@
 - Generated public site source lives in tracked `docs/public/`.
 - Streamlit ships as an `app` extra plus local `dev` support, defaults to public-safe summaries, and exposes optional clearly labeled local-only private drill-down panes.
 - The public site is generated from existing Phase 2 report artifacts and public downloads, not by re-running Phase 2 analytics or OpenAI during site generation.
+- GitHub Actions is the only Phase 4 automation target.
+- Pages deployment is artifact-based and does not create automated commits.
+- The repo keeps `docs/public/` tracked for reviewed manual workflows, while automated scheduled runs treat generated site output as ephemeral workspace state for deployment.
+- Scheduled automation uses explicit weekly and monthly cron entries, not a daily scheduler.
+- OpenAI remains required for published automated reports; missing runtime secrets fail the automation run.
+- The upstream repo is read-only in automation and is checked out fresh on every run from `ricardogr07/LinkedInWebScraper@data`.
 
 
