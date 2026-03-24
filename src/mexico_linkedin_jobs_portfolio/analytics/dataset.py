@@ -13,6 +13,7 @@ _JOIN_QUERY = """
 SELECT
     o.job_id,
     o.observed_at,
+    o.reported_date,
     COALESCE(e.canonical_title, o.title) AS title,
     o.city,
     o.state,
@@ -41,6 +42,7 @@ class JoinedObservationRecord:
 
     job_id: str
     observed_at: object
+    reported_date: object | None
     title: str
     city: str
     state: str | None

@@ -52,6 +52,7 @@ class ReportConfig:
     openai_model: str | None = None
     public_key_salt: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
+    filter_by_posted_date: bool = False
 
     @property
     def curated_storage(self) -> CuratedStorageConfig:

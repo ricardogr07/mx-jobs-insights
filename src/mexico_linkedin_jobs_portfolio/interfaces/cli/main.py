@@ -129,6 +129,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Compute the report period and metrics without writing artifacts or calling OpenAI.",
     )
+    report_parser.add_argument(
+        "--filter-by-posted-date",
+        action="store_true",
+        help="Filter jobs by Posted On date (reported_date) instead of observation date (for backfills).",
+    )
 
     site_parser = subparsers.add_parser(
         "site", help="Generate public MkDocs source from existing report artifacts."
@@ -226,6 +231,7 @@ def build_report_config(args: argparse.Namespace) -> ReportConfig:
         openai_model=os.environ.get(OPENAI_MODEL_ENV),
         public_key_salt=os.environ.get(PUBLIC_KEY_SALT_ENV),
         openai_base_url=os.environ.get(OPENAI_BASE_URL_ENV, "https://api.openai.com/v1"),
+        filter_by_posted_date=bool(getattr(args, "filter_by_posted_date", False)),
     )
 
 

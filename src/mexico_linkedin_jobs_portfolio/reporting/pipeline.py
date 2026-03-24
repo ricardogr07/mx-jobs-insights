@@ -44,7 +44,9 @@ class ReportPipeline:
     def run(self, config: ReportConfig) -> tuple[ReportRunSummary, int]:
         dataset = self.dataset_reader.load(config.curated_storage)
         period = resolve_closed_period(config.cadence, config.as_of_date)
-        metrics_result = build_report_metrics(dataset.records, period)
+        metrics_result = build_report_metrics(
+            dataset.records, period, filter_by_posted_date=config.filter_by_posted_date
+        )
 
         notes = [f"Read curated report input from {dataset.storage_mode} storage."]
         if metrics_result.metrics.job_count == 0:

@@ -27,13 +27,19 @@ class MetricsBuildResult:
 def build_report_metrics(
     records: tuple[JoinedObservationRecord, ...],
     period: PeriodWindow,
+    filter_by_posted_date: bool = False,
 ) -> MetricsBuildResult:
-    """Build one aggregate report payload from the selected reporting period."""
+    """Build one aggregate report payload from the selected reporting period.
+    
+    If filter_by_posted_date is True, uses reported_date (Posted On) for filtering.
+    Otherwise uses observed_at (when the job was scraped).
+    """
 
+    date_field = "reported_date" if filter_by_posted_date else "observed_at"
     period_records = tuple(
         record
         for record in records
-        if period.start_date <= record.observed_at <= period.end_date
+        if period.start_date <= getattr(record, date_field) <= period.end_date
     )
     latest_jobs = _select_latest_jobs(period_records)
 
