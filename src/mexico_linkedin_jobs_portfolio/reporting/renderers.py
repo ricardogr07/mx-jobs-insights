@@ -149,6 +149,7 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
     # Try to generate charts if plotly is available
     charts_html = _render_charts_section(metrics, locale)
     maps_html = _render_maps_section(metrics, locale)
+    analysis_html = _render_analysis_section(metrics, locale)
     
     # Build dimension sections
     sections = [
@@ -183,7 +184,10 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
             "  </header>",
             '  <nav class="report-nav">',
             '    <a href="#overview">Overview</a> | ',
-            '    <a href="#charts">Charts</a> | ',            '    <a href="#maps">Maps</a> | ',            '    <a href="#details">Details</a>',
+            '    <a href="#charts">Charts</a> | ',
+            '    <a href="#maps">Maps</a> | ',
+            '    <a href="#analysis">Analysis</a> | ',
+            '    <a href="#details">Details</a>',
             "  </nav>",
             '  <main class="report-content">',
             '    <section id="overview" class="section-overview">',
@@ -201,6 +205,7 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
             "    </section>",
             charts_html,
             maps_html,
+            analysis_html,
             '    <section id="details" class="section-details">',
             '      <h2 style="margin-top: 2rem;">Data Breakdown</h2>',
             *sections,
@@ -480,9 +485,44 @@ def _get_css_styles() -> str:
             font-style: italic;
         }
         
+        .section-analysis {
+            background: linear-gradient(135deg, #f5f7fa 0%, #f9fafb 100%);
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .analysis-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-top: 4px solid #667eea;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .analysis-container:hover {
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .analysis-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 6px;
+            margin-top: 0.5rem;
+        }
+        
         @media (max-width: 768px) {
             header h1 { font-size: 1.8rem; }
             .maps-grid { grid-template-columns: 1fr; }
+            .analysis-grid { grid-template-columns: 1fr; }
             .map-canvas { min-height: 400px; }
             .map-container-wrapper { min-height: 450px; }
             h2 { font-size: 1.4rem; }
@@ -608,6 +648,87 @@ def _render_maps_section(metrics: ReportMetrics, locale: str) -> str:
         )
     except Exception:
         # If any error, just skip maps section
+        return ""
+
+
+def _render_analysis_section(metrics: ReportMetrics, locale: str) -> str:
+    """Generate HTML section with tech heatmap and word cloud."""
+    try:
+        from mexico_linkedin_jobs_portfolio.analytics.charts import (
+            create_tech_stack_overview_heatmap,
+            create_word_cloud_text,
+            figure_to_base64_png,
+        )
+    except ImportError:
+        return ""
+    
+    analysis_labels = {
+        "en": {
+            "section_title": "Technology Analysis",
+            "heatmap_title": "Tech Stack Heatmap",
+            "heatmap_desc": "Technology prominence and frequency in job listings",
+            "wordcloud_title": "Tech Stack Word Cloud",
+            "wordcloud_desc": "Visual representation of technology frequency and prominence",
+        },
+        "es": {
+            "section_title": "Análisis Tecnológico",
+            "heatmap_title": "Mapa de Calor de Stack Tecnológico",
+            "heatmap_desc": "Prominencia y frecuencia de tecnologías en las ofertas",
+            "wordcloud_title": "Nube de Palabras de Stack Tecnológico",
+            "wordcloud_desc": "Representación visual de la frecuencia y prominencia de tecnologías",
+        },
+    }
+    
+    labels = analysis_labels.get(locale, analysis_labels["en"])
+    
+    try:
+        containers = []
+        
+        # Generate heatmap
+        try:
+            fig = create_tech_stack_overview_heatmap(metrics, locale)
+            img_b64 = figure_to_base64_png(fig, width=950, height=600)
+            
+            if img_b64:
+                containers.append(
+                    f'        <div class="analysis-container">'
+                    f'          <h3>{escape(labels["heatmap_title"])}</h3>'
+                    f'          <p style="font-size: 0.9rem; color: #666;">{escape(labels["heatmap_desc"])}</p>'
+                    f'          <img src="{img_b64}" alt="{escape(labels["heatmap_title"])}" title="{escape(labels["heatmap_title"])}">'
+                    f'        </div>'
+                )
+        except Exception:
+            pass
+        
+        # Generate word cloud
+        try:
+            img_b64 = create_word_cloud_text(metrics)
+            
+            if img_b64:
+                containers.append(
+                    f'        <div class="analysis-container">'
+                    f'          <h3>{escape(labels["wordcloud_title"])}</h3>'
+                    f'          <p style="font-size: 0.9rem; color: #666;">{escape(labels["wordcloud_desc"])}</p>'
+                    f'          <img src="{img_b64}" alt="{escape(labels["wordcloud_title"])}" title="{escape(labels["wordcloud_title"])}">'
+                    f'        </div>'
+                )
+        except Exception:
+            pass
+        
+        if not containers:
+            return ""
+        
+        return "\n".join(
+            [
+                '    <section id="analysis" class="section-analysis">',
+                f"      <h2>{escape(labels['section_title'])}</h2>",
+                '      <div class="analysis-grid">',
+                *containers,
+                "      </div>",
+                "    </section>",
+            ]
+        )
+    except Exception:
         return ""
 
 

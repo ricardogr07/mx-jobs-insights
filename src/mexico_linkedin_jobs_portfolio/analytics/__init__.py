@@ -22,9 +22,11 @@ try:
         create_jobs_distribution_map,
         create_remote_distribution_chart,
         create_seniority_distribution_chart,
+        create_tech_stack_overview_heatmap,
         create_top_cities_chart,
         create_top_companies_chart,
         create_top_tech_stack_chart,
+        create_word_cloud_text,
         figure_to_base64_png,
     )
 
@@ -42,9 +44,11 @@ try:
         "create_jobs_distribution_map",
         "create_remote_distribution_chart",
         "create_seniority_distribution_chart",
+        "create_tech_stack_overview_heatmap",
         "create_top_cities_chart",
         "create_top_companies_chart",
         "create_top_tech_stack_chart",
+        "create_word_cloud_text",
         "figure_to_base64_png",
     ]
 except ImportError:

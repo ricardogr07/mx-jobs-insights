@@ -383,6 +383,107 @@ def create_jobs_distribution_map(metrics: ReportMetrics, locale: str = "en") -> 
         return ""
 
 
+def create_tech_stack_overview_heatmap(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
+    """Create interactive Plotly heatmap showing tech stack prominence.
+    
+    Shows top technologies with job count and normalized frequency.
+    """
+    tech_data = metrics.tech_stack_counts[:12]  # Top 12 technologies
+    
+    if not tech_data:
+        fig = go.Figure()
+        fig.add_annotation(text="No technology data available", showarrow=False)
+        return fig
+    
+    labels = [item.label for item in tech_data]
+    values = [item.count for item in tech_data]
+    max_val = max(values)
+    normalized = [v / max_val * 100 for v in values]
+    
+    # Create heatmap as horizontal bars with color intensity
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                y=labels,
+                x=values,
+                orientation="h",
+                marker=dict(
+                    color=normalized,
+                    colorscale="Viridis",
+                    showscale=True,
+                    colorbar=dict(title="Frequency %", tickformat=".0f"),
+                ),
+                text=values,
+                textposition="outside",
+                hovertemplate="<b>%{y}</b><br>Jobs: %{x}<extra></extra>",
+            )
+        ]
+    )
+    
+    title = "Technology Stack Overview" if locale == "en" else "Resumen de Stack Tecnológico"
+    fig.update_layout(
+        title=title,
+        xaxis_title="Job Mentions" if locale == "en" else "Menciones en Empleos",
+        yaxis_title="Technology" if locale == "en" else "Tecnología",
+        template="plotly_white",
+        height=500,
+        showlegend=False,
+        hovermode="y",
+    )
+    fig.update_yaxes(autorange="reversed")
+    return fig
+
+
+def create_word_cloud_text(metrics: ReportMetrics) -> str:
+    """Generate word cloud visualization for tech stack.
+    
+    Returns HTML-embeddable PNG as base64 data URI.
+    """
+    try:
+        from wordcloud import WordCloud
+        import matplotlib.pyplot as plt
+        from matplotlib import rcParams
+    except ImportError:
+        return ""
+    
+    # Build word frequency dictionary from tech stack
+    tech_data = metrics.tech_stack_counts
+    if not tech_data:
+        return ""
+    
+    word_freq = {item.label: item.count for item in tech_data}
+    
+    # Create word cloud with project's color scheme
+    wordcloud = WordCloud(
+        width=1000,
+        height=600,
+        background_color="white",
+        colormap="cool",
+        relative_scaling=0.5,
+        min_font_size=12,
+        max_words=50,
+        prefer_horizontal=0.7,
+        collocations=False,
+    ).generate_from_frequencies(word_freq)
+    
+    # Render to matplotlib figure
+    fig, ax = plt.subplots(figsize=(12, 7), dpi=100)
+    ax.imshow(wordcloud, interpolation="bilinear")
+    ax.axis("off")
+    fig.tight_layout(pad=0)
+    
+    # Convert to base64 PNG
+    buf = BytesIO()
+    fig.savefig(buf, format="png", bbox_inches="tight", facecolor="white")
+    buf.seek(0)
+    img_bytes = buf.read()
+    buf.close()
+    plt.close(fig)
+    
+    b64 = base64.b64encode(img_bytes).decode("utf-8")
+    return f"data:image/png;base64,{b64}"
+
+
 def create_all_charts(metrics: ReportMetrics, locale: str = "en") -> dict[str, go.Figure]:
     """Generate all report charts."""
     return {
@@ -393,4 +494,5 @@ def create_all_charts(metrics: ReportMetrics, locale: str = "en") -> dict[str, g
         "employment": create_employment_type_chart(metrics, locale),
         "companies": create_top_companies_chart(metrics, locale),
         "industries": create_industry_distribution_chart(metrics, locale),
+        "tech_heatmap": create_tech_stack_overview_heatmap(metrics, locale),
     }
