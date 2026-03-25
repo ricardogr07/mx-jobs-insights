@@ -603,10 +603,10 @@ def _render_charts_section(metrics: ReportMetrics, locale: str) -> str:
 
 
 def _render_maps_section(metrics: ReportMetrics, locale: str) -> str:
-    """Generate HTML section with embedded job distribution map."""
+    """Generate HTML section with embedded job distribution map with heatmap layer."""
     try:
-        from mexico_linkedin_jobs_portfolio.analytics.charts import (
-            create_jobs_distribution_map,
+        from mexico_linkedin_jobs_portfolio.analytics.geo_charts import (
+            create_jobs_distribution_map_enhanced,
         )
     except ImportError:
         # Folium not available, skip maps
@@ -614,19 +614,19 @@ def _render_maps_section(metrics: ReportMetrics, locale: str) -> str:
     
     map_labels = {
         "en": {
-            "section_title": "Job Distribution Map",
-            "map_description": "Interactive map showing job distribution across Mexican cities",
+            "section_title": "Job Distribution Heat Map",
+            "map_description": "Interactive heat map showing job density and distribution across Mexican cities",
         },
         "es": {
-            "section_title": "Mapa de Distribución de Empleos",
-            "map_description": "Mapa interactivo mostrando la distribución de empleos en ciudades mexicanas",
+            "section_title": "Mapa de Calor de Distribución de Empleos",
+            "map_description": "Mapa de calor interactivo mostrando la densidad y distribución de empleos en ciudades mexicanas",
         },
     }
     
     labels = map_labels.get(locale, map_labels["en"])
     
     try:
-        map_html = create_jobs_distribution_map(metrics, locale)
+        map_html = create_jobs_distribution_map_enhanced(metrics, locale, heatmap=True)
         if not map_html:
             return ""
         

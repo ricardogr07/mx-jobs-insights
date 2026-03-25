@@ -53,6 +53,24 @@ def map_to_base64_html(folium_map) -> str:
         return ""
 
 
+def map_to_html_string(folium_map) -> str:
+    """Convert Folium map object to HTML string for direct embedding.
+    
+    Args:
+        folium_map: A folium.Map object
+        
+    Returns:
+        HTML string (suitable for direct embedding in reports)
+    """
+    try:
+        html_output = folium_map._repr_html_()
+        if isinstance(html_output, bytes):
+            html_output = html_output.decode("utf-8")
+        return html_output
+    except Exception:
+        return ""
+
+
 def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str:
     """Create interactive Folium map with heatmap layer showing job density by city.
     
@@ -67,7 +85,7 @@ def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str
         locale: Language for labels ("en" or "es")
     
     Returns:
-        Base64-encoded HTML string (data URI) or empty string if folium unavailable
+        HTML string for embedding in reports (or empty string if folium unavailable)
     """
     try:
         import folium
@@ -163,7 +181,7 @@ def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str
     # Add layer control
     folium.LayerControl().add_to(map_obj)
     
-    return map_to_base64_html(map_obj)
+    return map_to_html_string(map_obj)
 
 
 def create_city_cluster_map(metrics: ReportMetrics, locale: str = "en") -> str:
@@ -179,7 +197,7 @@ def create_city_cluster_map(metrics: ReportMetrics, locale: str = "en") -> str:
         locale: Language for labels ("en" or "es")
     
     Returns:
-        Base64-encoded HTML string (data URI) or empty string if folium unavailable
+        HTML string for embedding in reports (or empty string if folium unavailable)
     """
     try:
         import folium
@@ -237,7 +255,7 @@ def create_city_cluster_map(metrics: ReportMetrics, locale: str = "en") -> str:
     # Add layer control
     folium.LayerControl().add_to(map_obj)
     
-    return map_to_base64_html(map_obj)
+    return map_to_html_string(map_obj)
 
 
 def create_jobs_distribution_map_enhanced(metrics: ReportMetrics, locale: str = "en", heatmap: bool = True) -> str:
@@ -252,7 +270,7 @@ def create_jobs_distribution_map_enhanced(metrics: ReportMetrics, locale: str = 
         heatmap: If True, use heatmap layer; if False, use cluster view
     
     Returns:
-        Base64-encoded HTML string (data URI) or empty string if folium unavailable
+        HTML string for embedding in reports (or empty string if folium unavailable)
     """
     if heatmap:
         return create_city_heatmap_layer(metrics, locale)
