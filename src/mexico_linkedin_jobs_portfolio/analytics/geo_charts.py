@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-from io import BytesIO
 
 from mexico_linkedin_jobs_portfolio.models import ReportMetrics
 
@@ -34,10 +33,10 @@ _CITY_COORDINATES = {
 
 def map_to_base64_html(folium_map) -> str:
     """Convert Folium map object to base64-encoded HTML string for embedding.
-    
+
     Args:
         folium_map: A folium.Map object
-        
+
     Returns:
         Base64-encoded HTML string (data URI format)
     """
@@ -45,7 +44,7 @@ def map_to_base64_html(folium_map) -> str:
         html_output = folium_map._repr_html_()
         if isinstance(html_output, bytes):
             html_output = html_output.decode("utf-8")
-        
+
         html_bytes = html_output.encode("utf-8")
         b64_string = base64.b64encode(html_bytes).decode("utf-8")
         return f"data:text/html;base64,{b64_string}"
@@ -55,10 +54,10 @@ def map_to_base64_html(folium_map) -> str:
 
 def map_to_html_string(folium_map) -> str:
     """Convert Folium map object to HTML string for direct embedding.
-    
+
     Args:
         folium_map: A folium.Map object
-        
+
     Returns:
         HTML string (suitable for direct embedding in reports)
     """
@@ -73,17 +72,17 @@ def map_to_html_string(folium_map) -> str:
 
 def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str:
     """Create interactive Folium map with heatmap layer showing job density by city.
-    
+
     Features:
     - Heatmap layer with intensity based on job count
     - Circle markers with job count labels
     - Interactive pop-ups with city information
     - Mobile-responsive design
-    
+
     Args:
         metrics: ReportMetrics object containing city_counts
         locale: Language for labels ("en" or "es")
-    
+
     Returns:
         HTML string for embedding in reports (or empty string if folium unavailable)
     """
@@ -92,10 +91,10 @@ def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str
         from folium.plugins import HeatMap
     except ImportError:
         return ""
-    
+
     # Mexico center coordinates
     mexico_center = [23.0, -102.0]
-    
+
     # Create base map with light tileset
     map_obj = folium.Map(
         location=mexico_center,
@@ -104,24 +103,24 @@ def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str
         prefer_canvas=True,
         max_bounds=True,
     )
-    
+
     # Prepare data for heatmap layer
     city_data = metrics.city_counts[:10]
     if not city_data:
         return ""
-    
+
     max_count = max((c.count for c in city_data), default=1)
-    
+
     # Heatmap expects [[lat, lon, intensity], ...]
     heatmap_data = []
-    
+
     for city_info in city_data:
         if city_info.label in _CITY_COORDINATES:
             lat, lon = _CITY_COORDINATES[city_info.label]
             # Intensity: normalize to 0-1 range
             intensity = city_info.count / max_count
             heatmap_data.append([lat, lon, intensity])
-    
+
     if heatmap_data:
         # Add heatmap layer
         HeatMap(
@@ -137,15 +136,15 @@ def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str
                 1.0: "#B2182B",  # Red (hot)
             },
         ).add_to(map_obj)
-    
+
     # Add circle markers with city names and job counts
     for city_info in city_data:
         if city_info.label in _CITY_COORDINATES:
             lat, lon = _CITY_COORDINATES[city_info.label]
-            
+
             # Radius based on job count
             radius = 5 + (city_info.count / max_count) * 20
-            
+
             # Popup text
             if locale == "es":
                 popup_text = f"<b>{city_info.label}</b><br>Empleos: {city_info.count}"
@@ -153,7 +152,7 @@ def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str
             else:
                 popup_text = f"<b>{city_info.label}</b><br>Jobs: {city_info.count}"
                 title_text = "Jobs"
-            
+
             folium.CircleMarker(
                 location=[lat, lon],
                 radius=radius,
@@ -165,9 +164,13 @@ def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str
                 fillOpacity=0.8,
                 weight=2,
             ).add_to(map_obj)
-    
+
     # Add title via custom HTML
-    title_text = "Job Distribution Heatmap by City" if locale == "en" else "Mapa de Calor: Distribución de Empleos por Ciudad"
+    title_text = (
+        "Job Distribution Heatmap by City"
+        if locale == "en"
+        else "Mapa de Calor: Distribución de Empleos por Ciudad"
+    )
     title_html = f"""
     <div style="position: fixed; 
                 top: 10px; left: 50px; width: 300px; height: auto;
@@ -177,25 +180,25 @@ def create_city_heatmap_layer(metrics: ReportMetrics, locale: str = "en") -> str
     </div>
     """
     map_obj.get_root().html.add_child(folium.Element(title_html))
-    
+
     # Add layer control
     folium.LayerControl().add_to(map_obj)
-    
+
     return map_to_html_string(map_obj)
 
 
 def create_city_cluster_map(metrics: ReportMetrics, locale: str = "en") -> str:
     """Create interactive Folium map with MarkerCluster for city job distribution.
-    
+
     Features:
     - Automatic cluster grouping at different zoom levels
     - Better performance with many markers
     - Color-coded intensity visualization
-    
+
     Args:
         metrics: ReportMetrics object containing city_counts
         locale: Language for labels ("en" or "es")
-    
+
     Returns:
         HTML string for embedding in reports (or empty string if folium unavailable)
     """
@@ -204,10 +207,10 @@ def create_city_cluster_map(metrics: ReportMetrics, locale: str = "en") -> str:
         from folium.plugins import MarkerCluster
     except ImportError:
         return ""
-    
+
     # Mexico center coordinates
     mexico_center = [23.0, -102.0]
-    
+
     # Create base map
     map_obj = folium.Map(
         location=mexico_center,
@@ -215,22 +218,24 @@ def create_city_cluster_map(metrics: ReportMetrics, locale: str = "en") -> str:
         tiles="CartoDB positron",
         prefer_canvas=True,
     )
-    
+
     # Get city data
     city_data = metrics.city_counts[:10]
     if not city_data:
         return ""
-    
+
     max_count = max((c.count for c in city_data), default=1)
-    
+
     # Create marker cluster group
-    marker_cluster = MarkerCluster(name="City Clusters" if locale == "en" else "Agrupaciones de Ciudades").add_to(map_obj)
-    
+    marker_cluster = MarkerCluster(
+        name="City Clusters" if locale == "en" else "Agrupaciones de Ciudades"
+    ).add_to(map_obj)
+
     # Add markers to cluster
     for city_info in city_data:
         if city_info.label in _CITY_COORDINATES:
             lat, lon = _CITY_COORDINATES[city_info.label]
-            
+
             # Color based on intensity
             intensity_ratio = city_info.count / max_count
             if intensity_ratio > 0.66:
@@ -239,36 +244,38 @@ def create_city_cluster_map(metrics: ReportMetrics, locale: str = "en") -> str:
                 color = "orange"
             else:
                 color = "blue"
-            
+
             if locale == "es":
                 popup_text = f"{city_info.label}<br>Empleos: {city_info.count}"
             else:
                 popup_text = f"{city_info.label}<br>Jobs: {city_info.count}"
-            
+
             folium.Marker(
                 location=[lat, lon],
                 popup=folium.Popup(popup_text, max_width=150),
                 tooltip=city_info.label,
                 icon=folium.Icon(color=color, icon="briefcase"),
             ).add_to(marker_cluster)
-    
+
     # Add layer control
     folium.LayerControl().add_to(map_obj)
-    
+
     return map_to_html_string(map_obj)
 
 
-def create_jobs_distribution_map_enhanced(metrics: ReportMetrics, locale: str = "en", heatmap: bool = True) -> str:
+def create_jobs_distribution_map_enhanced(
+    metrics: ReportMetrics, locale: str = "en", heatmap: bool = True
+) -> str:
     """Create enhanced job distribution map with optional heatmap layer.
-    
+
     This is the primary geographic visualization function that combines
     frequency heatmap with city markers for a comprehensive view.
-    
+
     Args:
         metrics: ReportMetrics object containing city_counts
         locale: Language for labels ("en" or "es")
         heatmap: If True, use heatmap layer; if False, use cluster view
-    
+
     Returns:
         HTML string for embedding in reports (or empty string if folium unavailable)
     """

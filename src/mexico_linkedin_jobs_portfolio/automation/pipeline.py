@@ -42,12 +42,17 @@ class MkDocsBuildRunner:
     ) -> None:
         self.project_root = (project_root or Path.cwd()).expanduser().resolve(strict=False)
         self.config_path = (
-            config_path or (self.project_root / "mkdocs.yml")
-        ).expanduser().resolve(strict=False)
+            (config_path or (self.project_root / "mkdocs.yml")).expanduser().resolve(strict=False)
+        )
 
     def build(self, docs_root: Path) -> tuple[Path | None, str, tuple[str, ...], int]:
         if not self.config_path.is_file():
-            return None, "mkdocs_config_missing", (f"Missing MkDocs config at {self.config_path}.",), 1
+            return (
+                None,
+                "mkdocs_config_missing",
+                (f"Missing MkDocs config at {self.config_path}.",),
+                1,
+            )
 
         docs_root = docs_root.expanduser().resolve(strict=False)
         site_output_root = docs_root.parent / "site"
@@ -82,7 +87,12 @@ class MkDocsBuildRunner:
 
         status = "mkdocs_build_passed" if result.returncode == 0 else "mkdocs_build_failed"
         notes = self._collect_process_notes(result)
-        return site_output_root if result.returncode == 0 else None, status, notes, result.returncode
+        return (
+            site_output_root if result.returncode == 0 else None,
+            status,
+            notes,
+            result.returncode,
+        )
 
     def _render_config(self, docs_root: Path, site_output_root: Path) -> str:
         lines = self.config_path.read_text(encoding="utf-8").splitlines()
@@ -196,9 +206,7 @@ class PipelineOrchestrator:
             notes.append(
                 "Cloud delivery was requested because GCP environment variables were present."
             )
-            notes.append(
-                f"Missing cloud runtime env: {', '.join(missing_cloud)}."
-            )
+            notes.append(f"Missing cloud runtime env: {', '.join(missing_cloud)}.")
             summary = self._build_summary(
                 config,
                 period=period,
@@ -465,7 +473,9 @@ class PipelineOrchestrator:
 
     def _project_docs_root(self) -> Path:
         builder_root = getattr(self.docs_builder, "project_root", Path.cwd())
-        return (Path(builder_root).expanduser().resolve(strict=False) / "docs").resolve(strict=False)
+        return (Path(builder_root).expanduser().resolve(strict=False) / "docs").resolve(
+            strict=False
+        )
 
     def _prepare_docs_root(self, docs_root: Path) -> None:
         project_docs_root = self._project_docs_root()
@@ -590,4 +600,3 @@ class PipelineOrchestrator:
             encoding="utf-8",
         )
         return finalized, exit_code
-

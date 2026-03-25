@@ -102,5 +102,3 @@ class ReportArtifactIndexReader:
                 raise ValueError(
                     f"Report artifact bundle at {summary.artifact_dir} contains an empty {locale} report."
                 )
-
-

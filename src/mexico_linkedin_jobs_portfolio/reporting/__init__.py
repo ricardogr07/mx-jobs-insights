@@ -24,4 +24,3 @@ __all__ = [
     "render_markdown",
     "write_public_csv",
 ]
-

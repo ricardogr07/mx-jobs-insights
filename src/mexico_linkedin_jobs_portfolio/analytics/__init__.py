@@ -30,8 +30,8 @@ try:
         figure_to_base64_png,
     )
     from mexico_linkedin_jobs_portfolio.analytics.geo_charts import (
-        create_city_heatmap_layer,
         create_city_cluster_map,
+        create_city_heatmap_layer,
         create_jobs_distribution_map_enhanced,
     )
 
@@ -70,4 +70,3 @@ except ImportError:
         "resolve_closed_period",
         "resolve_reference_date",
     ]
-

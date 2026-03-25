@@ -147,10 +147,3 @@ class DashboardState:
     report_index: SiteReportIndex
     selected_entry: SiteReportEntry | None
     selected_latest_jobs: tuple[LatestJobRecord, ...]
-
-
-
-
-
-
-

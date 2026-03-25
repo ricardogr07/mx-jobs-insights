@@ -219,7 +219,9 @@ def _extract_narrative_payload(response_payload: dict[str, object]) -> dict[str,
             if not isinstance(content_part, dict):
                 continue
             if content_part.get("type") == "refusal":
-                raise RuntimeError(f"OpenAI narrative request was refused: {content_part.get('refusal')}")
+                raise RuntimeError(
+                    f"OpenAI narrative request was refused: {content_part.get('refusal')}"
+                )
             if content_part.get("type") == "output_text":
                 texts.append(str(content_part.get("text") or ""))
 

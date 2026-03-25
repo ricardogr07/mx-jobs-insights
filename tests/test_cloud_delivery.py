@@ -44,7 +44,9 @@ class RecordingBigQueryClient:
     def __init__(self) -> None:
         self.loads: list[tuple[str, list[dict[str, object]]]] = []
 
-    def load_table_from_json(self, rows: list[dict[str, object]], destination: str) -> RecordingLoadJob:
+    def load_table_from_json(
+        self, rows: list[dict[str, object]], destination: str
+    ) -> RecordingLoadJob:
         self.loads.append((destination, rows))
         return RecordingLoadJob()
 
@@ -60,7 +62,9 @@ def _cloud_config() -> CloudEnvironmentConfig:
     )
 
 
-def test_cloud_artifact_publisher_mirrors_curated_report_site_and_diagnostics(tmp_path: Path) -> None:
+def test_cloud_artifact_publisher_mirrors_curated_report_site_and_diagnostics(
+    tmp_path: Path,
+) -> None:
     curated_root, report_root = write_report_fixtures(tmp_path)
     site_root = tmp_path / "site"
     site_root.mkdir(parents=True)
@@ -120,4 +124,3 @@ def test_bigquery_exporter_mirrors_private_and_public_tables(tmp_path: Path) -> 
     assert "demo-project.mx_jobs_private.report_run_summaries" in destinations
     assert "demo-project.mx_jobs_public.public_jobs" in destinations
     assert "demo-project.mx_jobs_public.report_metrics" in destinations
-

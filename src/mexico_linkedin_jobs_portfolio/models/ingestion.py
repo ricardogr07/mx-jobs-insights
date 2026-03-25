@@ -130,6 +130,3 @@ class IngestionRunSummary:
         payload["notes"] = list(self.notes)
         payload["parquet_root"] = str(self.parquet_root) if self.parquet_root is not None else None
         return payload
-
-
-

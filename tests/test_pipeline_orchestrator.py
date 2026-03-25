@@ -45,7 +45,15 @@ class RecordingCloudPublisher:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
 
-    def publish(self, cloud_config, *, curated_root: Path, report_root: Path, site_output_root: Path | None, diagnostics_paths: tuple[Path, ...] = ()) -> CloudSyncResult:
+    def publish(
+        self,
+        cloud_config,
+        *,
+        curated_root: Path,
+        report_root: Path,
+        site_output_root: Path | None,
+        diagnostics_paths: tuple[Path, ...] = (),
+    ) -> CloudSyncResult:
         self.calls.append(
             {
                 "bucket": cloud_config.gcs_bucket,
@@ -61,7 +69,9 @@ class RecordingCloudPublisher:
             uploads=(
                 UploadedObject(
                     category="site",
-                    local_path=site_output_root / "index.html" if site_output_root is not None else report_root,
+                    local_path=site_output_root / "index.html"
+                    if site_output_root is not None
+                    else report_root,
                     object_name=f"{cloud_config.normalized_gcs_prefix}/site/index.html",
                 ),
             ),
@@ -74,7 +84,15 @@ class RecordingBigQueryExporter:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
 
-    def export(self, cloud_config, *, duckdb_path: Path, metrics_path: Path | None, public_csv_path: Path | None, report_run_summary_path: Path | None) -> BigQueryExportResult:
+    def export(
+        self,
+        cloud_config,
+        *,
+        duckdb_path: Path,
+        metrics_path: Path | None,
+        public_csv_path: Path | None,
+        report_run_summary_path: Path | None,
+    ) -> BigQueryExportResult:
         self.calls.append(
             {
                 "project_id": cloud_config.project_id,
@@ -128,7 +146,9 @@ def _safe_finalize(config, summary, exit_code):
     if config.dry_run:
         return summary, exit_code
 
-    finalized = replace(summary, pipeline_run_summary_path=config.pipeline_artifacts.run_summary_path)
+    finalized = replace(
+        summary, pipeline_run_summary_path=config.pipeline_artifacts.run_summary_path
+    )
     config.pipeline_artifacts.resolved_root().mkdir(parents=True, exist_ok=True)
     config.pipeline_artifacts.run_summary_path.write_text(
         json.dumps(finalized.to_display_dict(), indent=2, sort_keys=True),
@@ -266,7 +286,10 @@ def test_pipeline_non_dry_run_reuses_fixture_backed_flows(
     assert summary.duckdb_path is not None and summary.duckdb_path.is_file()
     assert summary.report_run_summary_path is not None and summary.report_run_summary_path.is_file()
     assert summary.site_run_summary_path is not None and summary.site_run_summary_path.is_file()
-    assert summary.pipeline_run_summary_path is not None and summary.pipeline_run_summary_path.is_file()
+    assert (
+        summary.pipeline_run_summary_path is not None
+        and summary.pipeline_run_summary_path.is_file()
+    )
     assert summary.site_output_root is not None
     assert summary.site_output_root.name == "site"
     assert not (config.docs_root / "development").exists()
@@ -342,7 +365,11 @@ def test_pipeline_non_dry_run_can_seed_missing_upstream_workspace_for_cloud_runs
     assert summary.status == "pipeline_cloud_written"
     assert missing_root.is_dir()
     assert upstream_seeder.calls == [
-        (missing_root.resolve(strict=False), config.upstream_repo_url, config.workspace.preferred_ref)
+        (
+            missing_root.resolve(strict=False),
+            config.upstream_repo_url,
+            config.workspace.preferred_ref,
+        )
     ]
     assert any("Seeded test upstream workspace" in note for note in summary.notes)
 
@@ -371,7 +398,10 @@ def test_pipeline_non_dry_run_fails_closed_when_report_runtime_env_missing(
     assert summary.site_status == "not_run"
     assert summary.docs_status == "not_run"
     assert summary.publish_ready is False
-    assert summary.pipeline_run_summary_path is not None and summary.pipeline_run_summary_path.is_file()
+    assert (
+        summary.pipeline_run_summary_path is not None
+        and summary.pipeline_run_summary_path.is_file()
+    )
     assert "OPENAI_API_KEY" in "\n".join(summary.notes)
     assert "MX_JOBS_OPENAI_MODEL" in "\n".join(summary.notes)
     assert "MX_JOBS_PUBLIC_KEY_SALT" in "\n".join(summary.notes)
@@ -403,9 +433,11 @@ def test_pipeline_non_dry_run_fails_closed_when_cloud_runtime_is_incomplete(
     assert summary.cloud_requested is True
     assert summary.cloud_storage_status == "cloud_config_invalid"
     assert summary.bigquery_status == "cloud_config_invalid"
-    assert summary.pipeline_run_summary_path is not None and summary.pipeline_run_summary_path.is_file()
+    assert (
+        summary.pipeline_run_summary_path is not None
+        and summary.pipeline_run_summary_path.is_file()
+    )
     assert "MX_JOBS_GCP_REGION" in "\n".join(summary.notes)
     assert "MX_JOBS_GCS_BUCKET" in "\n".join(summary.notes)
     assert "MX_JOBS_BIGQUERY_PRIVATE_DATASET" in "\n".join(summary.notes)
     assert "MX_JOBS_BIGQUERY_PUBLIC_DATASET" in "\n".join(summary.notes)
-

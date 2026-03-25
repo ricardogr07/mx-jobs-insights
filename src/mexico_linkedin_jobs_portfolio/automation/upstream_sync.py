@@ -59,7 +59,5 @@ class GitUpstreamWorkspaceSeeder:
 
         return (
             "workspace_seeded",
-            (
-                f"Cloned upstream ref '{workspace.preferred_ref}' from {repo_url} into {root}.",
-            ),
+            (f"Cloned upstream ref '{workspace.preferred_ref}' from {repo_url} into {root}.",),
         )

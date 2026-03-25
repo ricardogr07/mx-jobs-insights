@@ -5,8 +5,8 @@ from datetime import date
 import pytest
 
 from mexico_linkedin_jobs_portfolio.analytics.geo_charts import (
-    create_city_heatmap_layer,
     create_city_cluster_map,
+    create_city_heatmap_layer,
     create_jobs_distribution_map_enhanced,
 )
 from mexico_linkedin_jobs_portfolio.models import DimensionCount, PeriodWindow, ReportMetrics
@@ -71,7 +71,7 @@ class TestCityHeatmapLayer:
     def test_heatmap_creation_english(self, sample_metrics):
         """Test heatmap creation with English labels."""
         result = create_city_heatmap_layer(sample_metrics, locale="en")
-        
+
         # Should return HTML string for embedding
         if result:
             assert "<html" in result.lower() or "folium" in result.lower()
@@ -80,7 +80,7 @@ class TestCityHeatmapLayer:
     def test_heatmap_creation_spanish(self, sample_metrics):
         """Test heatmap creation with Spanish labels."""
         result = create_city_heatmap_layer(sample_metrics, locale="es")
-        
+
         if result:
             assert "<html" in result.lower() or "folium" in result.lower()
             assert len(result) > 100
@@ -107,7 +107,7 @@ class TestCityHeatmapLayer:
             company_counts=(),
             industry_counts=(),
         )
-        
+
         result = create_city_heatmap_layer(empty_metrics)
         assert result == ""  # Should return empty string for empty data
 
@@ -127,7 +127,7 @@ class TestCityHeatmapLayer:
             source_run_count=1,
             city_counts=(
                 DimensionCount("Unknown City", 10),  # Not in coordinate lookup
-                DimensionCount("Mexico City", 5),    # Known city
+                DimensionCount("Mexico City", 5),  # Known city
             ),
             remote_type_counts=(),
             seniority_counts=(),
@@ -136,7 +136,7 @@ class TestCityHeatmapLayer:
             company_counts=(),
             industry_counts=(),
         )
-        
+
         # Should skip unknown cities but still process known ones
         result = create_city_heatmap_layer(metrics)
         if result:
@@ -149,7 +149,7 @@ class TestCityClusterMap:
     def test_cluster_creation_english(self, sample_metrics):
         """Test cluster map creation with English labels."""
         result = create_city_cluster_map(sample_metrics, locale="en")
-        
+
         if result:
             assert "<html" in result.lower() or "folium" in result.lower()
             assert len(result) > 100
@@ -157,7 +157,7 @@ class TestCityClusterMap:
     def test_cluster_creation_spanish(self, sample_metrics):
         """Test cluster map creation with Spanish labels."""
         result = create_city_cluster_map(sample_metrics, locale="es")
-        
+
         if result:
             assert "<html" in result.lower() or "folium" in result.lower()
             assert len(result) > 100
@@ -184,7 +184,7 @@ class TestCityClusterMap:
             company_counts=(),
             industry_counts=(),
         )
-        
+
         result = create_city_cluster_map(empty_metrics)
         assert result == ""
 
@@ -194,30 +194,24 @@ class TestEnhancedDistributionMap:
 
     def test_enhanced_map_heatmap_mode(self, sample_metrics):
         """Test enhanced map in heatmap mode."""
-        result = create_jobs_distribution_map_enhanced(
-            sample_metrics, locale="en", heatmap=True
-        )
-        
+        result = create_jobs_distribution_map_enhanced(sample_metrics, locale="en", heatmap=True)
+
         if result:
             assert "<html" in result.lower() or "folium" in result.lower()
             assert len(result) > 100
 
     def test_enhanced_map_cluster_mode(self, sample_metrics):
         """Test enhanced map in cluster mode."""
-        result = create_jobs_distribution_map_enhanced(
-            sample_metrics, locale="en", heatmap=False
-        )
-        
+        result = create_jobs_distribution_map_enhanced(sample_metrics, locale="en", heatmap=False)
+
         if result:
             assert "<html" in result.lower() or "folium" in result.lower()
             assert len(result) > 100
 
     def test_enhanced_map_spanish(self, sample_metrics):
         """Test enhanced map with Spanish labels."""
-        result = create_jobs_distribution_map_enhanced(
-            sample_metrics, locale="es", heatmap=True
-        )
-        
+        result = create_jobs_distribution_map_enhanced(sample_metrics, locale="es", heatmap=True)
+
         if result:
             assert "<html" in result.lower() or "folium" in result.lower()
 
@@ -229,13 +223,13 @@ class TestEnhancedDistributionMap:
         cluster_result = create_jobs_distribution_map_enhanced(
             sample_metrics, locale="en", heatmap=False
         )
-        
+
         # Both should produce valid HTML strings
         if heatmap_result:
             assert "<html" in heatmap_result.lower() or "folium" in heatmap_result.lower()
         if cluster_result:
             assert "<html" in cluster_result.lower() or "folium" in cluster_result.lower()
-        
+
         # Results should be different (different map implementations)
         if heatmap_result and cluster_result:
             assert heatmap_result != cluster_result

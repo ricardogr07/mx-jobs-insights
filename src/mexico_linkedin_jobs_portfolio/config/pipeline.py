@@ -195,4 +195,3 @@ class PipelineConfig:
                 UPSTREAM_REF_ENV,
             ],
         }
-

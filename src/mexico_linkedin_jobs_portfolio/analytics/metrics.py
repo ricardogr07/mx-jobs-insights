@@ -30,7 +30,7 @@ def build_report_metrics(
     filter_by_posted_date: bool = False,
 ) -> MetricsBuildResult:
     """Build one aggregate report payload from the selected reporting period.
-    
+
     If filter_by_posted_date is True, uses reported_date (Posted On) for filtering.
     Otherwise uses observed_at (when the job was scraped).
     """
@@ -90,7 +90,9 @@ def build_report_metrics(
     return MetricsBuildResult(metrics=metrics, latest_jobs=latest_jobs)
 
 
-def _select_latest_jobs(records: tuple[JoinedObservationRecord, ...]) -> tuple[LatestJobRecord, ...]:
+def _select_latest_jobs(
+    records: tuple[JoinedObservationRecord, ...],
+) -> tuple[LatestJobRecord, ...]:
     grouped: dict[str, list[JoinedObservationRecord]] = {}
     for record in records:
         grouped.setdefault(record.job_id, []).append(record)
@@ -162,4 +164,3 @@ def _experience_bucket(value: float | None) -> str:
     if value <= 5:
         return "4-5 years"
     return "6+ years"
-

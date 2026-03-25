@@ -83,10 +83,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="mx-jobs-insights")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    ingest_parser = subparsers.add_parser("ingest", help="Inspect the upstream workspace and canonical source summary.")
+    ingest_parser = subparsers.add_parser(
+        "ingest", help="Inspect the upstream workspace and canonical source summary."
+    )
     add_shared_arguments(ingest_parser)
 
-    curate_parser = subparsers.add_parser("curate", help="Normalize upstream records and write curated storage.")
+    curate_parser = subparsers.add_parser(
+        "curate", help="Normalize upstream records and write curated storage."
+    )
     add_shared_arguments(curate_parser)
     curate_parser.add_argument(
         "--curated-root",
@@ -511,30 +515,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

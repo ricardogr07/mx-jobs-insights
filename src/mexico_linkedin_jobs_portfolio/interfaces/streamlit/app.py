@@ -137,7 +137,8 @@ def _render_summary_row(st, state: DashboardState) -> None:
     columns = st.columns(4)
     columns[0].metric("Reports", state.report_index.report_count)
     columns[1].metric(
-        "Latest weekly", _summary_period(state.report_index.latest_weekly, state.report_index.latest_weekly)
+        "Latest weekly",
+        _summary_period(state.report_index.latest_weekly, state.report_index.latest_weekly),
     )
     columns[2].metric(
         "Latest monthly",
@@ -307,9 +308,3 @@ def _inject_css(st) -> None:
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-

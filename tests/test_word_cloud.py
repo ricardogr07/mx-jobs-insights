@@ -99,7 +99,7 @@ class TestWordCloudGeneration:
     def test_word_cloud_with_tech_data(self, sample_metrics_with_tech):
         """Test word cloud generation with valid tech stack data."""
         result = create_word_cloud_text(sample_metrics_with_tech)
-        
+
         # If wordcloud is installed, should return base64 PNG
         if result:  # wordcloud library available
             assert result.startswith("data:image/png;base64,")
@@ -133,9 +133,9 @@ class TestWordCloudGeneration:
             company_counts=(),
             industry_counts=(),
         )
-        
+
         result = create_word_cloud_text(metrics)
-        
+
         # Should handle single technology gracefully
         if result:
             assert result.startswith("data:image/png;base64,")
@@ -167,9 +167,9 @@ class TestWordCloudGeneration:
             company_counts=sample_metrics_with_tech.company_counts,
             industry_counts=sample_metrics_with_tech.industry_counts,
         )
-        
+
         result = create_word_cloud_text(metrics)
-        
+
         # Should still produce valid output with max_words=50 limit
         if result:
             assert result.startswith("data:image/png;base64,")
@@ -180,7 +180,7 @@ class TestWordCloudGeneration:
         # This test verifies the try-except ImportError handling
         # by checking that we get empty string when wordcloud can't be imported
         result = create_word_cloud_text(sample_metrics_with_tech)
-        
+
         # Result should be either valid base64 PNG or empty string
         if result:
             assert result.startswith("data:image/png;base64,")
@@ -194,27 +194,28 @@ class TestWordCloudStringContent:
     def test_word_cloud_data_uri_format(self, sample_metrics_with_tech):
         """Test word cloud returns proper data URI format."""
         result = create_word_cloud_text(sample_metrics_with_tech)
-        
+
         if result:  # Only test format if wordcloud is installed
             # Should be a valid data URI
             assert result.startswith("data:image/png;base64,")
-            
+
             # Should be reasonably long (contains actual image data)
             assert len(result) > 1000
 
     def test_word_cloud_base64_valid(self, sample_metrics_with_tech):
         """Test word cloud returns valid base64-encoded data."""
         result = create_word_cloud_text(sample_metrics_with_tech)
-        
+
         if result:
             # Extract base64 portion
             base64_data = result.replace("data:image/png;base64,", "")
-            
+
             # Should be able to decode (no invalid characters)
             import base64
+
             try:
                 decoded = base64.b64decode(base64_data)
                 # PNG files start with specific magic bytes
-                assert decoded[:4] == b'\x89PNG'
+                assert decoded[:4] == b"\x89PNG"
             except Exception:
                 pytest.fail("Base64 data is invalid or not a PNG")

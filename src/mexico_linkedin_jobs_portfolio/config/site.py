@@ -86,6 +86,3 @@ class SiteConfig:
             "locale_coverage": list(self.locale_coverage),
             "dry_run": self.dry_run,
         }
-
-
-

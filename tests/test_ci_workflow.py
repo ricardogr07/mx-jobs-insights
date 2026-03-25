@@ -29,4 +29,3 @@ def test_ci_workflow_contract_matches_local_green_gate() -> None:
     assert "GITHUB_STEP_SUMMARY" in text
     assert "# CI summary" in text
     assert "Public site:" in text
-

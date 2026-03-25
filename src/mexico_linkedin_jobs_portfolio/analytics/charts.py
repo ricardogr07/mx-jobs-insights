@@ -6,9 +6,8 @@ import base64
 from io import BytesIO
 
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-from mexico_linkedin_jobs_portfolio.models import DimensionCount, ReportMetrics
+from mexico_linkedin_jobs_portfolio.models import ReportMetrics
 
 # Mexican city coordinates (latitude, longitude) for mapping
 _CITY_COORDINATES = {
@@ -50,10 +49,10 @@ def create_top_cities_chart(metrics: ReportMetrics, locale: str = "en") -> go.Fi
     """Bar chart: top 10 cities by job count."""
     top_n = min(10, len(metrics.city_counts))
     cities = metrics.city_counts[:top_n]
-    
+
     labels = [item.label for item in cities]
     values = [item.count for item in cities]
-    
+
     fig = go.Figure(
         data=[
             go.Bar(
@@ -66,7 +65,7 @@ def create_top_cities_chart(metrics: ReportMetrics, locale: str = "en") -> go.Fi
             )
         ]
     )
-    
+
     title = "Top 10 Cities" if locale == "en" else "Top 10 Ciudades"
     fig.update_layout(
         title=title,
@@ -84,10 +83,10 @@ def create_top_cities_chart(metrics: ReportMetrics, locale: str = "en") -> go.Fi
 def create_seniority_distribution_chart(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Pie chart: job distribution by seniority level."""
     seniority = metrics.seniority_counts
-    
+
     labels = [item.label for item in seniority]
     values = [item.count for item in seniority]
-    
+
     fig = go.Figure(
         data=[
             go.Pie(
@@ -106,7 +105,7 @@ def create_seniority_distribution_chart(metrics: ReportMetrics, locale: str = "e
             )
         ]
     )
-    
+
     title = "Seniority Distribution" if locale == "en" else "Distribución de Antigüedad"
     fig.update_layout(
         title=title,
@@ -119,10 +118,10 @@ def create_seniority_distribution_chart(metrics: ReportMetrics, locale: str = "e
 def create_remote_distribution_chart(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Pie chart: job distribution by remote type."""
     remote = metrics.remote_type_counts
-    
+
     labels = [item.label for item in remote]
     values = [item.count for item in remote]
-    
+
     fig = go.Figure(
         data=[
             go.Pie(
@@ -139,7 +138,7 @@ def create_remote_distribution_chart(metrics: ReportMetrics, locale: str = "en")
             )
         ]
     )
-    
+
     title = "Remote vs On-site" if locale == "en" else "Remoto vs Presencial"
     fig.update_layout(
         title=title,
@@ -154,10 +153,10 @@ def create_top_tech_stack_chart(metrics: ReportMetrics, locale: str = "en") -> g
     tech = metrics.tech_stack_counts
     top_n = min(12, len(tech))
     top_tech = tech[:top_n]
-    
+
     labels = [item.label for item in top_tech]
     values = [item.count for item in top_tech]
-    
+
     fig = go.Figure(
         data=[
             go.Bar(
@@ -171,7 +170,7 @@ def create_top_tech_stack_chart(metrics: ReportMetrics, locale: str = "en") -> g
             )
         ]
     )
-    
+
     title = "Top 12 Technologies" if locale == "en" else "Top 12 Tecnologías"
     fig.update_layout(
         title=title,
@@ -188,10 +187,10 @@ def create_top_tech_stack_chart(metrics: ReportMetrics, locale: str = "en") -> g
 def create_employment_type_chart(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Bar chart: employment type distribution."""
     employment = metrics.employment_type_counts
-    
+
     labels = [item.label for item in employment]
     values = [item.count for item in employment]
-    
+
     fig = go.Figure(
         data=[
             go.Bar(
@@ -204,7 +203,7 @@ def create_employment_type_chart(metrics: ReportMetrics, locale: str = "en") -> 
             )
         ]
     )
-    
+
     title = "Employment Type" if locale == "en" else "Tipo de Empleador"
     fig.update_layout(
         title=title,
@@ -224,10 +223,10 @@ def create_top_companies_chart(metrics: ReportMetrics, locale: str = "en") -> go
     companies = metrics.top_company_counts
     top_n = min(10, len(companies))
     top_companies = companies[:top_n]
-    
+
     labels = [item.label for item in top_companies]
     values = [item.count for item in top_companies]
-    
+
     fig = go.Figure(
         data=[
             go.Bar(
@@ -241,7 +240,7 @@ def create_top_companies_chart(metrics: ReportMetrics, locale: str = "en") -> go
             )
         ]
     )
-    
+
     title = "Top 10 Hiring Companies" if locale == "en" else "Top 10 Empresas Contratando"
     fig.update_layout(
         title=title,
@@ -260,10 +259,10 @@ def create_industry_distribution_chart(metrics: ReportMetrics, locale: str = "en
     industries = metrics.industry_counts
     top_n = min(10, len(industries))
     top_industries = industries[:top_n]
-    
+
     labels = [item.label for item in top_industries]
     values = [item.count for item in top_industries]
-    
+
     fig = go.Figure(
         data=[
             go.Bar(
@@ -277,7 +276,7 @@ def create_industry_distribution_chart(metrics: ReportMetrics, locale: str = "en
             )
         ]
     )
-    
+
     title = "Top 10 Industries" if locale == "en" else "Top 10 Industrias"
     fig.update_layout(
         title=title,
@@ -293,15 +292,17 @@ def create_industry_distribution_chart(metrics: ReportMetrics, locale: str = "en
 
 def create_seniority_skills_heatmap(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Summary heatmap showing skill relevance across seniority levels.
-    
+
     This is a stylized heatmap showing how many jobs at each seniority level
     mention top technologies.
     """
     # For this version, we'll create a simple matrix showing distribution
     # This is a placeholder that shows top 8 tech x 5 seniority combos
     fig = go.Figure()
-    
-    title = "Technology Alignment (Skill Popularity)" if locale == "en" else "Alineación Tecnológica"
+
+    title = (
+        "Technology Alignment (Skill Popularity)" if locale == "en" else "Alineación Tecnológica"
+    )
     fig.update_layout(
         title=title,
         template="plotly_white",
@@ -323,17 +324,17 @@ def create_seniority_skills_heatmap(metrics: ReportMetrics, locale: str = "en") 
 
 def create_jobs_distribution_map(metrics: ReportMetrics, locale: str = "en") -> str:
     """Create interactive folium map showing job distribution by city.
-    
+
     Returns HTML string that can be embedded directly in reports.
     """
     try:
         import folium
     except ImportError:
         return ""  # Folium not installed, return empty
-    
+
     # Mexico center coordinates
     mexico_center = [23.0, -102.0]
-    
+
     # Create base map with CartoDB tileset (lighter than default)
     map_obj = folium.Map(
         location=mexico_center,
@@ -341,27 +342,27 @@ def create_jobs_distribution_map(metrics: ReportMetrics, locale: str = "en") -> 
         tiles="CartoDB positron",
         prefer_canvas=True,
     )
-    
+
     # Get top cities and add circle markers
     top_cities = metrics.city_counts[:10]
     max_count = max((c.count for c in top_cities), default=1)
-    
+
     for city_data in top_cities:
         if city_data.label in _CITY_COORDINATES:
             lat, lon = _CITY_COORDINATES[city_data.label]
-            
+
             # Radius based on job count (scaled 5-25px)
             radius = 5 + (city_data.count / max_count) * 20
-            
+
             # Color intensity based on job count
             intensity = min(255, int((city_data.count / max_count) * 255))
             color = f"#{intensity:02x}63c0"  # Purple-ish gradient
-            
+
             # Add marker with city info
             popup_text = f"<b>{city_data.label}</b><br>Jobs: {city_data.count}"
             if locale == "es":
                 popup_text = f"<b>{city_data.label}</b><br>Empleos: {city_data.count}"
-            
+
             folium.CircleMarker(
                 location=[lat, lon],
                 radius=radius,
@@ -372,7 +373,7 @@ def create_jobs_distribution_map(metrics: ReportMetrics, locale: str = "en") -> 
                 fillOpacity=0.7,
                 weight=2,
             ).add_to(map_obj)
-    
+
     # Convert to HTML string (self-contained with all CSS/JS)
     try:
         html_output = map_obj._repr_html_()
@@ -385,21 +386,21 @@ def create_jobs_distribution_map(metrics: ReportMetrics, locale: str = "en") -> 
 
 def create_tech_stack_overview_heatmap(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Create interactive Plotly heatmap showing tech stack prominence.
-    
+
     Shows top technologies with job count and normalized frequency.
     """
     tech_data = metrics.tech_stack_counts[:12]  # Top 12 technologies
-    
+
     if not tech_data:
         fig = go.Figure()
         fig.add_annotation(text="No technology data available", showarrow=False)
         return fig
-    
+
     labels = [item.label for item in tech_data]
     values = [item.count for item in tech_data]
     max_val = max(values)
     normalized = [v / max_val * 100 for v in values]
-    
+
     # Create heatmap as horizontal bars with color intensity
     fig = go.Figure(
         data=[
@@ -419,7 +420,7 @@ def create_tech_stack_overview_heatmap(metrics: ReportMetrics, locale: str = "en
             )
         ]
     )
-    
+
     title = "Technology Stack Overview" if locale == "en" else "Resumen de Stack Tecnológico"
     fig.update_layout(
         title=title,
@@ -436,23 +437,22 @@ def create_tech_stack_overview_heatmap(metrics: ReportMetrics, locale: str = "en
 
 def create_word_cloud_text(metrics: ReportMetrics) -> str:
     """Generate word cloud visualization for tech stack.
-    
+
     Returns HTML-embeddable PNG as base64 data URI.
     """
     try:
-        from wordcloud import WordCloud
         import matplotlib.pyplot as plt
-        from matplotlib import rcParams
+        from wordcloud import WordCloud
     except ImportError:
         return ""
-    
+
     # Build word frequency dictionary from tech stack
     tech_data = metrics.tech_stack_counts
     if not tech_data:
         return ""
-    
+
     word_freq = {item.label: item.count for item in tech_data}
-    
+
     # Create word cloud with project's color scheme
     wordcloud = WordCloud(
         width=1000,
@@ -465,13 +465,13 @@ def create_word_cloud_text(metrics: ReportMetrics) -> str:
         prefer_horizontal=0.7,
         collocations=False,
     ).generate_from_frequencies(word_freq)
-    
+
     # Render to matplotlib figure
     fig, ax = plt.subplots(figsize=(12, 7), dpi=100)
     ax.imshow(wordcloud, interpolation="bilinear")
     ax.axis("off")
     fig.tight_layout(pad=0)
-    
+
     # Convert to base64 PNG
     buf = BytesIO()
     fig.savefig(buf, format="png", bbox_inches="tight", facecolor="white")
@@ -479,7 +479,7 @@ def create_word_cloud_text(metrics: ReportMetrics) -> str:
     img_bytes = buf.read()
     buf.close()
     plt.close(fig)
-    
+
     b64 = base64.b64encode(img_bytes).decode("utf-8")
     return f"data:image/png;base64,{b64}"
 

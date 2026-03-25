@@ -306,7 +306,9 @@ class ReportRunSummary:
             "output_root": str(self.output_root),
             "dry_run": self.dry_run,
             "period_id": self.period_id,
-            "period_start": self.period_start.isoformat() if self.period_start is not None else None,
+            "period_start": self.period_start.isoformat()
+            if self.period_start is not None
+            else None,
             "period_end": self.period_end.isoformat() if self.period_end is not None else None,
             "as_of_date": self.as_of_date.isoformat() if self.as_of_date is not None else None,
             "observation_count": self.observation_count,
@@ -349,10 +351,14 @@ class ReportRunSummary:
                 else None
             ),
             period_end=(
-                date.fromisoformat(str(payload["period_end"])) if payload.get("period_end") else None
+                date.fromisoformat(str(payload["period_end"]))
+                if payload.get("period_end")
+                else None
             ),
             as_of_date=(
-                date.fromisoformat(str(payload["as_of_date"])) if payload.get("as_of_date") else None
+                date.fromisoformat(str(payload["as_of_date"]))
+                if payload.get("as_of_date")
+                else None
             ),
             observation_count=int(payload.get("observation_count", 0)),
             job_count=int(payload.get("job_count", 0)),
@@ -360,8 +366,12 @@ class ReportRunSummary:
             public_row_count=int(payload.get("public_row_count", 0)),
             narration_status=str(payload.get("narration_status", "not_requested")),
             status=str(payload.get("status", "not_run")),
-            artifact_dir=Path(str(payload["artifact_dir"])) if payload.get("artifact_dir") else None,
-            metrics_path=Path(str(payload["metrics_path"])) if payload.get("metrics_path") else None,
+            artifact_dir=Path(str(payload["artifact_dir"]))
+            if payload.get("artifact_dir")
+            else None,
+            metrics_path=Path(str(payload["metrics_path"]))
+            if payload.get("metrics_path")
+            else None,
             public_csv_path=(
                 Path(str(payload["public_csv_path"])) if payload.get("public_csv_path") else None
             ),
@@ -388,7 +398,3 @@ def _parse_dimension_counts(values: Any) -> tuple[DimensionCount, ...]:
     return tuple(
         DimensionCount.from_display_dict(item) for item in values if isinstance(item, dict)
     )
-
-
-
-

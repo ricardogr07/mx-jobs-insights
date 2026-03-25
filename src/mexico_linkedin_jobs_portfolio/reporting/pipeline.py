@@ -93,7 +93,9 @@ class ReportPipeline:
             public_rows = build_public_job_records(
                 metrics_result.latest_jobs, config.public_key_salt or ""
             )
-            artifacts = self._write_artifacts(config, metrics_result.metrics, narrative, public_rows)
+            artifacts = self._write_artifacts(
+                config, metrics_result.metrics, narrative, public_rows
+            )
             notes.append("Skipped OpenAI narration because the selected period contains no jobs.")
             notes.append(f"Wrote report artifacts to {artifacts.artifact_dir}.")
             summary = self._build_summary(
@@ -230,4 +232,3 @@ class ReportPipeline:
             html_paths=artifacts.html_paths if artifacts is not None else None,
             notes=notes,
         )
-

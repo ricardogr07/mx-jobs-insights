@@ -100,4 +100,3 @@ class ReportConfig:
             "openai_base_url": self.openai_base_url,
             "missing_runtime_env": list(self.missing_runtime_env()) if not self.dry_run else [],
         }
-

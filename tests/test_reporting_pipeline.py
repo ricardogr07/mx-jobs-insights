@@ -255,7 +255,9 @@ def test_report_pipeline_write_handles_empty_period_without_openai(tmp_path: Pat
     with summary.public_csv_path.open("r", encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
     assert rows == []
-    assert "Skipped OpenAI narration because the selected period contains no jobs." in "\n".join(summary.notes)
+    assert "Skipped OpenAI narration because the selected period contains no jobs." in "\n".join(
+        summary.notes
+    )
 
 
 def test_report_pipeline_writes_artifacts_with_mock_openai_base_url(tmp_path: Path) -> None:
@@ -282,6 +284,7 @@ def test_report_pipeline_writes_artifacts_with_mock_openai_base_url(tmp_path: Pa
     assert summary.markdown_paths is not None
     markdown_text = summary.markdown_paths["en"].read_text(encoding="utf-8")
     assert "distinct jobs were observed during" in markdown_text
+
 
 def test_report_pipeline_fails_closed_when_runtime_env_is_missing(tmp_path: Path) -> None:
     curated_root = write_curated_fixture(tmp_path)
@@ -425,4 +428,3 @@ def test_cli_report_monthly_write_outputs_artifacts(capsys, tmp_path: Path, monk
     assert Path(payload["public_csv_path"]).is_file()
     assert Path(payload["markdown_paths"]["en"]).is_file()
     assert Path(payload["html_paths"]["es"]).is_file()
-

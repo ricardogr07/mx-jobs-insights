@@ -127,7 +127,9 @@ def render_period_page(
         ]
     )
     lines.extend(
-        _render_count_section(_label(locale_coverage, "Cities", "Ciudades"), entry.metrics.city_counts[:5])
+        _render_count_section(
+            _label(locale_coverage, "Cities", "Ciudades"), entry.metrics.city_counts[:5]
+        )
     )
     lines.extend(
         _render_count_section(
@@ -190,7 +192,9 @@ def render_downloads_page(
         ]
     )
     for entry in index.entries:
-        public_csv = _relative_link(page_path, public_root / entry.asset_relative_dir() / "public_jobs.csv")
+        public_csv = _relative_link(
+            page_path, public_root / entry.asset_relative_dir() / "public_jobs.csv"
+        )
         html_links = _join_html_links(
             entry,
             locale_coverage=locale_coverage,
@@ -243,7 +247,9 @@ def _render_latest_section(
     if entry is None:
         lines.extend(
             [
-                _label(locale_coverage, "No report available yet.", "Aun no hay reporte disponible."),
+                _label(
+                    locale_coverage, "No report available yet.", "Aun no hay reporte disponible."
+                ),
                 "",
             ]
         )
@@ -311,7 +317,7 @@ def _join_html_links(
 
 
 def _relative_link(source_path: Path, target_path: Path) -> str:
-    return relpath(target_path, start=source_path.parent).replace('\\', '/')
+    return relpath(target_path, start=source_path.parent).replace("\\", "/")
 
 
 def _label(locale_coverage: tuple[str, ...], en: str, es: str) -> str:
@@ -320,10 +326,3 @@ def _label(locale_coverage: tuple[str, ...], en: str, es: str) -> str:
     if locale_coverage == ("es",):
         return es
     return en
-
-
-
-
-
-
-

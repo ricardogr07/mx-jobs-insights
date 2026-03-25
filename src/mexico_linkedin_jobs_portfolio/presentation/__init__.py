@@ -5,4 +5,3 @@ from mexico_linkedin_jobs_portfolio.presentation.dashboard import DashboardDataL
 from mexico_linkedin_jobs_portfolio.presentation.site_pipeline import SitePipeline
 
 __all__ = ["DashboardDataLoader", "ReportArtifactIndexReader", "SitePipeline"]
-

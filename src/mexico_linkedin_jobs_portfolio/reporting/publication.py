@@ -63,4 +63,3 @@ def write_public_csv(rows: tuple[PublicJobRecord, ...], path: Path) -> None:
 def _build_public_job_key(job_id: str, public_key_salt: str) -> str:
     digest = hashlib.sha256(f"{public_key_salt}:{job_id}".encode()).hexdigest()
     return digest
-

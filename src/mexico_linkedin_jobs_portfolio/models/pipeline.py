@@ -68,7 +68,9 @@ class PipelineRunSummary:
             "docs_root": str(self.docs_root),
             "dry_run": self.dry_run,
             "period_id": self.period_id,
-            "period_start": self.period_start.isoformat() if self.period_start is not None else None,
+            "period_start": self.period_start.isoformat()
+            if self.period_start is not None
+            else None,
             "period_end": self.period_end.isoformat() if self.period_end is not None else None,
             "as_of_date": self.as_of_date.isoformat() if self.as_of_date is not None else None,
             "source_run_count": self.source_run_count,
@@ -102,12 +104,12 @@ class PipelineRunSummary:
             "site_output_root": (
                 str(self.site_output_root) if self.site_output_root is not None else None
             ),
-            "cloud_sync": self.cloud_sync.to_display_dict() if self.cloud_sync is not None else None,
+            "cloud_sync": self.cloud_sync.to_display_dict()
+            if self.cloud_sync is not None
+            else None,
             "bigquery_export": (
                 self.bigquery_export.to_display_dict() if self.bigquery_export is not None else None
             ),
             "status": self.status,
             "notes": list(self.notes),
         }
-
-

@@ -65,9 +65,9 @@ def run_report_command(cadence: str, as_of_date: date, filter_by_posted_date: bo
     if filter_by_posted_date:
         cmd.append("--filter-by-posted-date")
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"Running: {' '.join(cmd)}")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     result = subprocess.run(cmd)
     return result.returncode
@@ -76,7 +76,9 @@ def run_report_command(cadence: str, as_of_date: date, filter_by_posted_date: bo
 def main() -> int:
     """Execute all backfill reports."""
     print("Starting historical report backfill with Posted On date filtering...")
-    print(f"\nTotal operations: {len(WEEKLY_BACKFILLS)} weekly + {len(MONTHLY_BACKFILLS)} monthly + 1 current")
+    print(
+        f"\nTotal operations: {len(WEEKLY_BACKFILLS)} weekly + {len(MONTHLY_BACKFILLS)} monthly + 1 current"
+    )
 
     failed_reports = []
 
@@ -123,7 +125,9 @@ def main() -> int:
         print("1. Verify the generated reports look correct visually")
         print("2. Run 'mkdocs build' to regenerate the site with new report content")
         print("3. Push the updated artifacts and site to the repository")
-        print("\nFuture reports (starting Monday next week) will use normal filtering by observation date.")
+        print(
+            "\nFuture reports (starting Monday next week) will use normal filtering by observation date."
+        )
         return 0
 
 

@@ -66,4 +66,3 @@ class DashboardDataLoader:
         if cadence == "monthly":
             return report_index.latest_monthly
         return report_index.latest_monthly or report_index.latest_weekly
-

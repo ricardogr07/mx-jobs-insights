@@ -19,7 +19,9 @@ class LoadJobProtocol(Protocol):
 
 
 class BigQueryClientProtocol(Protocol):
-    def load_table_from_json(self, rows: list[dict[str, Any]], destination: str) -> LoadJobProtocol: ...
+    def load_table_from_json(
+        self, rows: list[dict[str, Any]], destination: str
+    ) -> LoadJobProtocol: ...
 
 
 class BigQueryExporter:
@@ -46,7 +48,9 @@ class BigQueryExporter:
             rows = self._load_duckdb_table(duckdb_path, table_name)
             if not rows:
                 continue
-            destination = f"{cloud_config.project_id}.{cloud_config.bigquery_private_dataset}.{table_name}"
+            destination = (
+                f"{cloud_config.project_id}.{cloud_config.bigquery_private_dataset}.{table_name}"
+            )
             client.load_table_from_json(rows, destination).result()
             exported_tables.append(
                 BigQueryTableExport(
@@ -59,9 +63,7 @@ class BigQueryExporter:
 
         report_summary_rows = self._load_single_json_row(report_run_summary_path)
         if report_summary_rows:
-            destination = (
-                f"{cloud_config.project_id}.{cloud_config.bigquery_private_dataset}.report_run_summaries"
-            )
+            destination = f"{cloud_config.project_id}.{cloud_config.bigquery_private_dataset}.report_run_summaries"
             client.load_table_from_json(report_summary_rows, destination).result()
             exported_tables.append(
                 BigQueryTableExport(
@@ -74,7 +76,9 @@ class BigQueryExporter:
 
         public_jobs_rows = self._load_public_csv_rows(public_csv_path)
         if public_jobs_rows:
-            destination = f"{cloud_config.project_id}.{cloud_config.bigquery_public_dataset}.public_jobs"
+            destination = (
+                f"{cloud_config.project_id}.{cloud_config.bigquery_public_dataset}.public_jobs"
+            )
             client.load_table_from_json(public_jobs_rows, destination).result()
             exported_tables.append(
                 BigQueryTableExport(
@@ -87,7 +91,9 @@ class BigQueryExporter:
 
         metrics_rows = self._load_single_json_row(metrics_path)
         if metrics_rows:
-            destination = f"{cloud_config.project_id}.{cloud_config.bigquery_public_dataset}.report_metrics"
+            destination = (
+                f"{cloud_config.project_id}.{cloud_config.bigquery_public_dataset}.report_metrics"
+            )
             client.load_table_from_json(metrics_rows, destination).result()
             exported_tables.append(
                 BigQueryTableExport(
@@ -167,7 +173,7 @@ class BigQueryExporter:
         if isinstance(value, list):
             return [BigQueryExporter._normalize_value(item) for item in value]
         if isinstance(value, dict):
-            return {str(key): BigQueryExporter._normalize_value(item) for key, item in value.items()}
+            return {
+                str(key): BigQueryExporter._normalize_value(item) for key, item in value.items()
+            }
         return value
-
-

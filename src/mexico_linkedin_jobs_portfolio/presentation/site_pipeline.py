@@ -48,7 +48,9 @@ class SitePipeline:
             "Site generation uses completed report artifacts and public CSV downloads only.",
         ]
         if config.dry_run:
-            notes.append("Dry run resolved the public site index without writing MkDocs source pages.")
+            notes.append(
+                "Dry run resolved the public site index without writing MkDocs source pages."
+            )
             return self._build_summary(
                 config,
                 report_index,
@@ -204,10 +206,14 @@ class SitePipeline:
             dry_run=config.dry_run,
             report_count=report_index.report_count,
             latest_weekly_period_id=(
-                report_index.latest_weekly.period_id if report_index.latest_weekly is not None else None
+                report_index.latest_weekly.period_id
+                if report_index.latest_weekly is not None
+                else None
             ),
             latest_monthly_period_id=(
-                report_index.latest_monthly.period_id if report_index.latest_monthly is not None else None
+                report_index.latest_monthly.period_id
+                if report_index.latest_monthly is not None
+                else None
             ),
             generated_page_count=artifacts.generated_page_count if artifacts is not None else 0,
             copied_asset_count=artifacts.copied_asset_count if artifacts is not None else 0,
@@ -215,5 +221,3 @@ class SitePipeline:
             status=status,
             notes=notes,
         )
-
-

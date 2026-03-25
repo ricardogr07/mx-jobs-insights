@@ -147,4 +147,3 @@ def _parse_tech_stack_json(value: str | None) -> tuple[str, ...]:
     if not isinstance(parsed, list):
         return ()
     return tuple(str(item) for item in parsed if str(item).strip())
-

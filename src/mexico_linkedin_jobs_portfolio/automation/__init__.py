@@ -6,4 +6,3 @@ from mexico_linkedin_jobs_portfolio.automation.pipeline import (
 )
 
 __all__ = ["MkDocsBuildRunner", "PipelineOrchestrator"]
-

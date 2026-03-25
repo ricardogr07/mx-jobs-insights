@@ -96,4 +96,3 @@ class BigQueryExportResult:
             "notes": list(self.notes),
             "tables": [table.to_display_dict() for table in self.tables],
         }
-

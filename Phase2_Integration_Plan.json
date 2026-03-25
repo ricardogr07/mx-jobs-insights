@@ -1,0 +1,372 @@
+{
+  "report_title": "Phase 2 Visualizations Integration Plan for render_html()",
+  "file_location": "src/mexico_linkedin_jobs_portfolio/reporting/renderers.py",
+  "analysis_timestamp": "2026-03-25",
+  "current_state": {
+    "render_html_line_range": "157-282",
+    "current_sections": [
+      {
+        "name": "Overview section (narrative + bullets)",
+        "id": "#overview",
+        "location": "lines 175-180"
+      },
+      {
+        "name": "Metrics section (headline numbers)",
+        "id": "#metrics",
+        "location": "lines 181-188"
+      },
+      {
+        "name": "Charts section (Plotly visualizations)",
+        "id": "#charts",
+        "call": "_render_charts_section()",
+        "location": "line 189"
+      },
+      {
+        "name": "Maps section (folium job distribution)",
+        "id": "#maps",
+        "call": "_render_maps_section()",
+        "location": "line 190"
+      },
+      {
+        "name": "Analysis section (tech heatmap + word cloud)",
+        "id": "#analysis",
+        "call": "_render_analysis_section()",
+        "location": "line 191"
+      },
+      {
+        "name": "Details section (dimension breakdowns)",
+        "id": "#details",
+        "location": "lines 192-200"
+      }
+    ],
+    "navigation_bar": {
+      "location": "lines 168-172",
+      "current_links": [
+        "#overview",
+        "#charts",
+        "#maps",
+        "#analysis",
+        "#details"
+      ]
+    }
+  },
+  "phase2_visualizations_status": {
+    "geographic_heatmap": {
+      "requested_function": "create_jobs_distribution_map_enhanced",
+      "source_module": "geo_charts",
+      "actual_functions_available": [
+        {
+          "name": "create_city_heatmap_layer",
+          "line": 56,
+          "returns": "str (HTML)",
+          "signature": "(metrics: ReportMetrics, locale: str = 'en') -> str"
+        },
+        {
+          "name": "create_city_cluster_map",
+          "line": 169,
+          "returns": "str (HTML)",
+          "signature": "(metrics: ReportMetrics, locale: str = 'en') -> str"
+        },
+        {
+          "name": "create_jobs_distribution_map_enhanced",
+          "line": 243,
+          "returns": "str (HTML)",
+          "signature": "(metrics: ReportMetrics, locale: str = 'en', heatmap: bool = True) -> str",
+          "note": "Wrapper that calls create_city_heatmap_layer or create_city_cluster_map based on heatmap parameter"
+        }
+      ],
+      "integration_status": "ALREADY INTEGRATED in _render_maps_section (line 594-637)",
+      "notes": "Geographic heatmap is already in use via _render_maps_section, which calls create_jobs_distribution_map(). The enhancement (enhanced version) is available in geo_charts but not yet used."
+    },
+    "tech_seniority_heatmap": {
+      "requested_functions": [
+        "create_seaborn_heatmap",
+        "create_plotly_heatmap"
+      ],
+      "source_module": "heatmap_design",
+      "actual_functions_available": [
+        {
+          "name": "create_seaborn_heatmap",
+          "line": 117,
+          "returns": "matplotlib.pyplot.Figure",
+          "signature": "(pivot_df: pd.DataFrame, title: str = '...', figsize: tuple[int, int] = (12, 7), cmap: str = 'RdYlGn', annot: bool = True, fmt: str = 'd', cbar_label: str = 'Job Count') -> plt.Figure",
+          "requires": "build_tech_seniority_pivot_from_records() helper",
+          "output_format": "matplotlib figure (must convert via figure_to_base64_seaborn)"
+        },
+        {
+          "name": "figure_to_base64_seaborn",
+          "line": 207,
+          "returns": "str (data URI)",
+          "signature": "(fig: plt.Figure, format: str = 'png', dpi: int = 100) -> str",
+          "note": "Converts matplotlib figures to base64 PNG data URI"
+        },
+        {
+          "name": "create_plotly_heatmap",
+          "line": 212,
+          "returns": "plotly.graph_objects.Figure",
+          "signature": "(pivot_df: pd.DataFrame, title: str = '...', colorscale: str = 'RdYlGn', locale: str = 'en') -> go.Figure",
+          "requires": "build_tech_seniority_pivot_from_records() helper",
+          "output_format": "plotly figure (can use existing figure_to_base64_png)"
+        },
+        {
+          "name": "create_seniority_skills_heatmap_v2",
+          "line": 372,
+          "returns": "plotly.graph_objects.Figure",
+          "signature": "(records: tuple[JoinedObservationRecord, ...], ...)",
+          "note": "Alternative Plotly-based heatmap that works with raw records"
+        },
+        {
+          "name": "build_tech_seniority_pivot_from_records",
+          "line": 34,
+          "returns": "pd.DataFrame",
+          "signature": "(records: tuple[JoinedObservationRecord, ...], top_n_skills: int = 10, top_n_seniorities: Optional[int] = None) -> pd.DataFrame",
+          "note": "Builds pivot table from raw observation records. Requires access to metrics.observations or similar."
+        }
+      ],
+      "integration_status": "NOT YET INTEGRATED",
+      "integration_challenge": "ReportMetrics does not currently expose 'observations' or JoinedObservationRecord tuples. This heatmap requires raw record-level data, not aggregated counts.",
+      "recommended_approach": "Add Tech×Seniority heatmap to _render_analysis_section() as separate visualization, but this requires either: (A) Modifying ReportMetrics to expose raw records, or (B) Building pivot table from existing aggregated dimensions"
+    },
+    "word_cloud": {
+      "source_function": "create_word_cloud_text",
+      "source_module": "charts",
+      "line": 437,
+      "returns": "str (base64 data URI)",
+      "signature": "(metrics: ReportMetrics) -> str",
+      "integration_status": "ALREADY INTEGRATED in _render_analysis_section (line 684-708)",
+      "integration_location": "lines 684-708",
+      "notes": "Word cloud is already fully integrated into the analysis section"
+    }
+  },
+  "integration_recommendations": {
+    "overall_strategy": {
+      "priority_1_ALREADY_DONE": [
+        "Geographic heatmap (in _render_maps_section)",
+        "Word cloud (in _render_analysis_section)"
+      ],
+      "priority_2_ENHANCEMENT_OPTIONAL": [
+        "Enhanced geographic heatmap with create_jobs_distribution_map_enhanced (currently using basic create_jobs_distribution_map)"
+      ],
+      "priority_3_BLOCKED": [
+        "Tech×Seniority heatmap (requires record-level data not currently available in ReportMetrics)"
+      ]
+    },
+    "next_steps": [
+      {
+        "step": "1. Verify current word cloud and geographic heatmap rendering",
+        "action": "Run tests to confirm Phase 2 visualizations are correctly embedded",
+        "file": "tests/test_reporting_pipeline.py"
+      },
+      {
+        "step": "2. OPTIONAL: Enhance geographic heatmap",
+        "changes": [
+          {
+            "description": "Replace create_jobs_distribution_map() with create_jobs_distribution_map_enhanced()",
+            "current_line": "607 in _render_maps_section",
+            "replacement": "map_html = create_jobs_distribution_map_enhanced(metrics, locale, heatmap=True)"
+          },
+          {
+            "description": "Update import statement",
+            "current_line": "595",
+            "old_import": "from mexico_linkedin_jobs_portfolio.analytics.charts import create_jobs_distribution_map",
+            "new_import": "from mexico_linkedin_jobs_portfolio.analytics.geo_charts import create_jobs_distribution_map_enhanced"
+          }
+        ]
+      },
+      {
+        "step": "3. FUTURE: Enable Tech×Seniority heatmap",
+        "prerequisites": [
+          "Modify ReportMetrics class to expose raw JoinedObservationRecord tuples",
+          "OR: Build pivot table from aggregated seniority_counts + tech_stack_counts"
+        ],
+        "proposed_integration_location": "_render_analysis_section() after word cloud",
+        "estimated_complexity": "HIGH - requires data model changes"
+      }
+    ]
+  },
+  "css_styling_system": {
+    "current_classes": {
+      ".section-charts": {
+        "line": 355,
+        "purpose": "Container for Plotly chart visualizations",
+        "grid_layout": ".charts-grid (repeat(auto-fit, minmax(500px, 1fr)))"
+      },
+      ".section-maps": {
+        "line": 407,
+        "purpose": "Container for folium/leaflet maps",
+        "grid_layout": ".maps-grid (repeat(auto-fit, minmax(450px, 1fr)))",
+        "special_handling": "Map containers have min-height constraints for interactivity"
+      },
+      ".section-analysis": {
+        "line": 435,
+        "purpose": "Container for tech analysis visualizations (heatmap + word cloud)",
+        "grid_layout": ".analysis-grid (repeat(auto-fit, minmax(500px, 1fr)))"
+      },
+      ".chart-container": {
+        "line": 366,
+        "purpose": "For embedded base64 PNG images (Plotly/seaborn charts)"
+      },
+      ".map-container-wrapper": {
+        "line": 416,
+        "purpose": "For folium/leaflet HTML maps with special styling"
+      },
+      ".analysis-container": {
+        "line": 441,
+        "purpose": "For tech analysis visualizations with h3 titles"
+      }
+    },
+    "recommended_css_for_techseniority_heatmap": {
+      "use_existing_class": ".analysis-container",
+      "rationale": "Fits existing design pattern for tech-related visualizations",
+      "no_changes_needed_to_css": true
+    },
+    "responsive_breakpoints": {
+      "@media (max-width: 768px)": {
+        "line": 527,
+        "grid_template_columns_charts": "1fr",
+        "grid_template_columns_maps": "1fr",
+        "grid_template_columns_analysis": "1fr"
+      }
+    }
+  },
+  "section_naming_convention": {
+    "pattern": "id='<plural_or_section_name>' and h2 title with escape(text[locale]['key'])",
+    "existing_examples": [
+      {
+        "id": "#overview",
+        "h2_title": "Narrative Summary (from _TEXT[locale]['narrative'])"
+      },
+      {
+        "id": "#charts",
+        "h2_title": "Visualizations (locale-specific in _render_charts_section line 560)"
+      },
+      {
+        "id": "#maps",
+        "h2_title": "Job Distribution Map (from labels dict in _render_maps_section)"
+      },
+      {
+        "id": "#analysis",
+        "h2_title": "Technology Analysis (from labels dict in _render_analysis_section)"
+      },
+      {
+        "id": "#details",
+        "h2_title": "Data Breakdown (hardcoded in render_html line 192)"
+      }
+    ],
+    "localization_approach": "Each section renderer defines locale-specific labels in a dict (see _render_charts_section line 543-560, _render_maps_section line 604-613)"
+  },
+  "integration_locations": {
+    "_render_charts_section": {
+      "line_range": "532-591",
+      "pattern": "Tries to import → create_all_charts() → iterate over chart dict → convert to base64 PNG → build grid",
+      "error_handling": "Try-catch with ImportError, Exception handling for each chart",
+      "charts_included": [
+        "top_cities",
+        "seniority_dist",
+        "remote_dist",
+        "tech_stack",
+        "employment",
+        "companies",
+        "industries"
+      ]
+    },
+    "_render_maps_section": {
+      "line_range": "594-637",
+      "pattern": "Tries to import → create_jobs_distribution_map() → wraps folium HTML in container divs",
+      "current_map_function": "create_jobs_distribution_map() from charts module",
+      "improvement_available": "Can upgrade to create_jobs_distribution_map_enhanced from geo_charts module",
+      "error_handling": "Try-catch with ImportError, Exception handling"
+    },
+    "_render_analysis_section": {
+      "line_range": "640-709",
+      "contains": [
+        {
+          "visualization": "Tech Stack Heatmap",
+          "function": "create_tech_stack_overview_heatmap()",
+          "location": "lines 667-682",
+          "output_format": "Plotly Figure → base64 PNG"
+        },
+        {
+          "visualization": "Word Cloud",
+          "function": "create_word_cloud_text()",
+          "location": "lines 684-708",
+          "output_format": "Already base64 PNG"
+        }
+      ],
+      "pattern": "Tries to import → try each visualization separately → build .analysis-container divs",
+      "error_handling": "Try-catch for ImportError + per-visualization Exception handling"
+    }
+  },
+  "optional_dependencies_handling": {
+    "current_approach": "Each section renderer has try-except ImportError block",
+    "affected_modules": [
+      {
+        "module": "plotly (charts)",
+        "missing_handler": "Returns empty string (no charts section)",
+        "location": "_render_charts_section line 537-540"
+      },
+      {
+        "module": "folium (geo_charts)",
+        "missing_handler": "Returns empty string (no maps section)",
+        "location": "_render_maps_section line 598-601"
+      },
+      {
+        "module": "wordcloud, matplotlib (charts)",
+        "missing_handler": "Returns empty string (skips word cloud only, keeps heatmap if available)",
+        "location": "_render_analysis_section line 687-688"
+      }
+    ],
+    "recommended_pattern_for_tech_seniority": {
+      "code_template": "import heatmap_design functions with try-except ImportError",
+      "fallback": "Return empty string or skip visualization silently"
+    }
+  },
+  "integration_checklist": {
+    "geographic_heatmap": {
+      "step_1_DONE": "Already integrated via _render_maps_section",
+      "step_2_OPTIONAL": "Upgrade to enhanced version (geo_charts.create_jobs_distribution_map_enhanced)",
+      "step_3_OPTIONAL": "Update CSS if needed (current map-container-wrapper styling is sufficient)"
+    },
+    "tech_seniority_heatmap": {
+      "step_1": "Determine if ReportMetrics will expose raw observation records",
+      "step_2_IF_YES": "Implement _render_tech_seniority_heatmap() helper function",
+      "step_3_IF_YES": "Add section to render_html() and navigation bar",
+      "step_4_IF_YES": "Add localized labels to _TEXT dict and section renderer",
+      "step_5_IF_YES": "Ensure CSS .analysis-container class is used",
+      "status": "BLOCKED on data model decision"
+    },
+    "word_cloud": {
+      "step_1_DONE": "Already fully integrated in _render_analysis_section",
+      "status": "COMPLETE"
+    }
+  },
+  "modification_summary": {
+    "files_already_modified": [
+      {
+        "file": "renderers.py",
+        "modifications": "Added _render_charts_section, _render_maps_section, _render_analysis_section",
+        "status": "Phase 2 components present but may not be optimally configured"
+      }
+    ],
+    "files_not_yet_modified": [
+      {
+        "file": "renderers.py _TEXT dict",
+        "reason": "Tech×Seniority heatmap section title not yet localized"
+      }
+    ]
+  },
+  "code_quality_notes": {
+    "strengths": [
+      "Consistent error handling with ImportError checks",
+      "Graceful degradation when optional dependencies missing",
+      "Locale-aware labels and localization",
+      "Responsive CSS grid layouts",
+      "Per-visualization try-catch blocks in analysis section"
+    ],
+    "areas_for_improvement": [
+      "map_html = create_jobs_distribution_map(metrics, locale) still uses old import source (should be geo_charts)",
+      "Tech×Seniority requires architectural change to ReportMetrics",
+      "No logging of skipped sections (silent failure is good UX but hard to debug)"
+    ]
+  }
+}

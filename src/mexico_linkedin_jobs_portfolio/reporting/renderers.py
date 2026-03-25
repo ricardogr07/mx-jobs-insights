@@ -124,19 +124,13 @@ def render_markdown(metrics: ReportMetrics, narrative: GeneratedNarrative, local
     )
     lines.extend(_render_markdown_section(text["industry"], metrics.industry_counts, locale))
     lines.extend(
-        _render_markdown_section(
-            text["english"], metrics.english_requirement_counts, locale
-        )
+        _render_markdown_section(text["english"], metrics.english_requirement_counts, locale)
     )
     lines.extend(
-        _render_markdown_section(
-            text["experience"], metrics.experience_bucket_counts, locale
-        )
+        _render_markdown_section(text["experience"], metrics.experience_bucket_counts, locale)
     )
     lines.extend(_render_markdown_section(text["tech_stack"], metrics.tech_stack_counts, locale))
-    lines.extend(
-        _render_markdown_section(text["companies"], metrics.top_company_counts, locale)
-    )
+    lines.extend(_render_markdown_section(text["companies"], metrics.top_company_counts, locale))
     return "\n".join(lines).strip() + "\n"
 
 
@@ -145,12 +139,12 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
 
     text = _TEXT[locale]
     headline, bullets = narrative.for_locale(locale)
-    
+
     # Try to generate charts if plotly is available
     charts_html = _render_charts_section(metrics, locale)
     maps_html = _render_maps_section(metrics, locale)
     analysis_html = _render_analysis_section(metrics, locale)
-    
+
     # Build dimension sections
     sections = [
         _render_html_list(text["cities"], metrics.city_counts, locale),
@@ -164,7 +158,7 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
         _render_html_list(text["companies"], metrics.top_company_counts, locale),
     ]
     bullet_html = "".join(f"<li>{escape(item)}</li>" for item in bullets)
-    
+
     return "\n".join(
         [
             "<!doctype html>",
@@ -178,9 +172,9 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
             "  </style>",
             "</head>",
             "<body>",
-            f"  <header class=\"report-header\">",
+            '  <header class="report-header">',
             f"    <h1>{escape(text['title'])}</h1>",
-            f"    <p class=\"period-label\">{escape(_format_period_label(metrics, locale))}</p>",
+            f'    <p class="period-label">{escape(_format_period_label(metrics, locale))}</p>',
             "  </header>",
             '  <nav class="report-nav">',
             '    <a href="#overview">Overview</a> | ',
@@ -192,8 +186,8 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
             '  <main class="report-content">',
             '    <section id="overview" class="section-overview">',
             f"      <h2>{escape(text['narrative'])}</h2>",
-            f"      <p class=\"narrative-headline\">{escape(headline)}</p>",
-            f"      <ul class=\"narrative-bullets\">{bullet_html}</ul>",
+            f'      <p class="narrative-headline">{escape(headline)}</p>',
+            f'      <ul class="narrative-bullets">{bullet_html}</ul>',
             "    </section>",
             '    <section class="section-metrics">',
             f"      <h2>{escape(text['headline_metrics'])}</h2>",
@@ -543,7 +537,7 @@ def _render_charts_section(metrics: ReportMetrics, locale: str) -> str:
     except ImportError:
         # Plotly not available, skip charts
         return ""
-    
+
     chart_labels = {
         "en": {
             "top_cities": "Top 10 Cities",
@@ -564,13 +558,13 @@ def _render_charts_section(metrics: ReportMetrics, locale: str) -> str:
             "industries": "Top Industrias",
         },
     }
-    
+
     labels = chart_labels.get(locale, chart_labels["en"])
-    
+
     try:
         charts = create_all_charts(metrics, locale)
         chart_divs = []
-        
+
         for chart_key, fig in charts.items():
             try:
                 img_b64 = figure_to_base64_png(fig, width=950, height=600)
@@ -582,10 +576,10 @@ def _render_charts_section(metrics: ReportMetrics, locale: str) -> str:
             except Exception:
                 # Skip chart if generation fails
                 pass
-        
+
         if not chart_divs:
             return ""
-        
+
         section_title = "Visualizations" if locale == "en" else "Visualizaciones"
         return "\n".join(
             [
@@ -611,7 +605,7 @@ def _render_maps_section(metrics: ReportMetrics, locale: str) -> str:
     except ImportError:
         # Folium not available, skip maps
         return ""
-    
+
     map_labels = {
         "en": {
             "section_title": "Job Distribution Heat Map",
@@ -622,20 +616,20 @@ def _render_maps_section(metrics: ReportMetrics, locale: str) -> str:
             "map_description": "Mapa de calor interactivo mostrando la densidad y distribución de empleos en ciudades mexicanas",
         },
     }
-    
+
     labels = map_labels.get(locale, map_labels["en"])
-    
+
     try:
         map_html = create_jobs_distribution_map_enhanced(metrics, locale, heatmap=True)
         if not map_html:
             return ""
-        
+
         # Wrap folium map HTML in container div with proper styling
         return "\n".join(
             [
                 '    <section id="maps" class="section-maps">',
                 f"      <h2>{escape(labels['section_title'])}</h2>",
-                f"      <p class=\"map-description\">{escape(labels['map_description'])}</p>",
+                f'      <p class="map-description">{escape(labels["map_description"])}</p>',
                 '      <div class="maps-grid">',
                 '        <div class="map-container-wrapper">',
                 '          <div class="map-canvas">',
@@ -661,7 +655,7 @@ def _render_analysis_section(metrics: ReportMetrics, locale: str) -> str:
         )
     except ImportError:
         return ""
-    
+
     analysis_labels = {
         "en": {
             "section_title": "Technology Analysis",
@@ -678,46 +672,46 @@ def _render_analysis_section(metrics: ReportMetrics, locale: str) -> str:
             "wordcloud_desc": "Representación visual de la frecuencia y prominencia de tecnologías",
         },
     }
-    
+
     labels = analysis_labels.get(locale, analysis_labels["en"])
-    
+
     try:
         containers = []
-        
+
         # Generate heatmap
         try:
             fig = create_tech_stack_overview_heatmap(metrics, locale)
             img_b64 = figure_to_base64_png(fig, width=950, height=600)
-            
+
             if img_b64:
                 containers.append(
                     f'        <div class="analysis-container">'
-                    f'          <h3>{escape(labels["heatmap_title"])}</h3>'
+                    f"          <h3>{escape(labels['heatmap_title'])}</h3>"
                     f'          <p style="font-size: 0.9rem; color: #666;">{escape(labels["heatmap_desc"])}</p>'
                     f'          <img src="{img_b64}" alt="{escape(labels["heatmap_title"])}" title="{escape(labels["heatmap_title"])}">'
-                    f'        </div>'
+                    f"        </div>"
                 )
         except Exception:
             pass
-        
+
         # Generate word cloud
         try:
             img_b64 = create_word_cloud_text(metrics)
-            
+
             if img_b64:
                 containers.append(
                     f'        <div class="analysis-container">'
-                    f'          <h3>{escape(labels["wordcloud_title"])}</h3>'
+                    f"          <h3>{escape(labels['wordcloud_title'])}</h3>"
                     f'          <p style="font-size: 0.9rem; color: #666;">{escape(labels["wordcloud_desc"])}</p>'
                     f'          <img src="{img_b64}" alt="{escape(labels["wordcloud_title"])}" title="{escape(labels["wordcloud_title"])}">'
-                    f'        </div>'
+                    f"        </div>"
                 )
         except Exception:
             pass
-        
+
         if not containers:
             return ""
-        
+
         return "\n".join(
             [
                 '    <section id="analysis" class="section-analysis">',
@@ -732,7 +726,9 @@ def _render_analysis_section(metrics: ReportMetrics, locale: str) -> str:
         return ""
 
 
-def _render_markdown_section(title: str, items: tuple[DimensionCount, ...], locale: str) -> list[str]:
+def _render_markdown_section(
+    title: str, items: tuple[DimensionCount, ...], locale: str
+) -> list[str]:
     lines = [f"## {title}"]
     if not items:
         lines.extend([f"- {_TEXT[locale]['empty']}", ""])
@@ -766,4 +762,3 @@ def _format_period_label(metrics: ReportMetrics, locale: str) -> str:
 
     month_name = _MONTH_NAMES[locale][metrics.period.start_date.month - 1]
     return f"{month_name} {metrics.period.start_date.year}"
-
