@@ -29,6 +29,11 @@ try:
         create_word_cloud_text,
         figure_to_base64_png,
     )
+    from mexico_linkedin_jobs_portfolio.analytics.geo_charts import (
+        create_city_heatmap_layer,
+        create_city_cluster_map,
+        create_jobs_distribution_map_enhanced,
+    )
 
     __all__ = [
         "CuratedDataset",
@@ -50,6 +55,9 @@ try:
         "create_top_tech_stack_chart",
         "create_word_cloud_text",
         "figure_to_base64_png",
+        "create_city_heatmap_layer",
+        "create_city_cluster_map",
+        "create_jobs_distribution_map_enhanced",
     ]
 except ImportError:
     # Plotly not installed, charts not available
