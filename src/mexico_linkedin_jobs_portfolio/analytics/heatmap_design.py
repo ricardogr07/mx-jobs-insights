@@ -17,13 +17,20 @@ import base64
 import io
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
 import pandas as pd
-import plotly.graph_objects as go
-import seaborn as sns
 
 from mexico_linkedin_jobs_portfolio.analytics.dataset import JoinedObservationRecord
 from mexico_linkedin_jobs_portfolio.models import ReportMetrics
+
+# Optional dependencies for visualization
+try:
+    import matplotlib.pyplot as plt
+    import plotly.graph_objects as go
+    import seaborn as sns
+
+    HAS_VIZ_DEPS = True
+except ImportError:
+    HAS_VIZ_DEPS = False
 
 # ============================================================================
 # SEABORN CMAKE APPROACH (matplotlib-based)
@@ -136,6 +143,9 @@ def create_seaborn_heatmap(
         4. Strong title and labels for context
         5. Tight layout to prevent label cutoff
     """
+    if not HAS_VIZ_DEPS:
+        return None  # type: ignore
+
     fig, ax = plt.subplots(figsize=figsize, dpi=100)
 
     # Create heatmap with styling
@@ -185,6 +195,9 @@ def figure_to_base64_seaborn(
         >>> data_uri = figure_to_base64_seaborn(fig)
         >>> html = f'<img src="{data_uri}" alt="Skills Heatmap">'
     """
+    if not HAS_VIZ_DEPS or fig is None:
+        return ""
+
     buffer = io.BytesIO()
     fig.savefig(buffer, format=format, dpi=dpi, bbox_inches="tight")
     buffer.seek(0)
@@ -224,6 +237,9 @@ def create_plotly_heatmap(
         - Responsive to screen size
         - No extra conversion needed for web
     """
+    if not HAS_VIZ_DEPS:
+        return go.Figure()  # type: ignore
+
     if locale == "es":
         title = "Habilidades Tecnológicas por Nivel de Experiencia"
         hover_label = "Ofertas: "
@@ -291,6 +307,9 @@ def seaborn_complete_workflow(
         >>> </html>
         >>> '''
     """
+    if not HAS_VIZ_DEPS:
+        return ""
+
     # 1. Build pivot table
     pivot = build_tech_seniority_pivot_from_records(
         records,
@@ -340,6 +359,9 @@ def plotly_complete_workflow(
 
     Returns ready-to-embed Plotly figure (no base64 conversion needed).
     """
+    if not HAS_VIZ_DEPS:
+        return go.Figure()  # type: ignore
+
     pivot = build_tech_seniority_pivot_from_records(
         records,
         top_n_skills=10,

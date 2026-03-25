@@ -5,7 +5,13 @@ from __future__ import annotations
 import base64
 from io import BytesIO
 
-import plotly.graph_objects as go
+try:
+    import plotly.graph_objects as go
+
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
+    go = None  # type: ignore
 
 from mexico_linkedin_jobs_portfolio.models import ReportMetrics
 
@@ -34,8 +40,18 @@ _CITY_COORDINATES = {
 }
 
 
+def _empty_figure() -> go.Figure:
+    """Return empty plotly figure when plotly is unavailable."""
+    if HAS_PLOTLY:
+        return go.Figure()
+    return go.Figure()  # type: ignore
+
+
 def figure_to_base64_png(fig: go.Figure, width: int = 1000, height: int = 600) -> str:
     """Convert Plotly figure to base64-encoded PNG string for HTML embedding."""
+    if not HAS_PLOTLY or fig is None:
+        return ""
+
     try:
         img_bytes = fig.to_image(format="png", width=width, height=height)
         b64 = base64.b64encode(img_bytes).decode("utf-8")
@@ -47,6 +63,9 @@ def figure_to_base64_png(fig: go.Figure, width: int = 1000, height: int = 600) -
 
 def create_top_cities_chart(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Bar chart: top 10 cities by job count."""
+    if not HAS_PLOTLY:
+        return _empty_figure()
+
     top_n = min(10, len(metrics.city_counts))
     cities = metrics.city_counts[:top_n]
 
@@ -150,6 +169,9 @@ def create_remote_distribution_chart(metrics: ReportMetrics, locale: str = "en")
 
 def create_top_tech_stack_chart(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Bar chart: top technologies/skills mentioned."""
+    if not HAS_PLOTLY:
+        return _empty_figure()
+
     tech = metrics.tech_stack_counts
     top_n = min(12, len(tech))
     top_tech = tech[:top_n]
@@ -186,6 +208,9 @@ def create_top_tech_stack_chart(metrics: ReportMetrics, locale: str = "en") -> g
 
 def create_employment_type_chart(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Bar chart: employment type distribution."""
+    if not HAS_PLOTLY:
+        return _empty_figure()
+
     employment = metrics.employment_type_counts
 
     labels = [item.label for item in employment]
@@ -220,6 +245,9 @@ def create_employment_type_chart(metrics: ReportMetrics, locale: str = "en") -> 
 
 def create_top_companies_chart(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Horizontal bar chart: top hiring companies."""
+    if not HAS_PLOTLY:
+        return _empty_figure()
+
     companies = metrics.top_company_counts
     top_n = min(10, len(companies))
     top_companies = companies[:top_n]
@@ -256,6 +284,9 @@ def create_top_companies_chart(metrics: ReportMetrics, locale: str = "en") -> go
 
 def create_industry_distribution_chart(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
     """Horizontal bar chart: top industries."""
+    if not HAS_PLOTLY:
+        return _empty_figure()
+
     industries = metrics.industry_counts
     top_n = min(10, len(industries))
     top_industries = industries[:top_n]
@@ -296,6 +327,9 @@ def create_seniority_skills_heatmap(metrics: ReportMetrics, locale: str = "en") 
     This is a stylized heatmap showing how many jobs at each seniority level
     mention top technologies.
     """
+    if not HAS_PLOTLY:
+        return _empty_figure()
+
     # For this version, we'll create a simple matrix showing distribution
     # This is a placeholder that shows top 8 tech x 5 seniority combos
     fig = go.Figure()
@@ -389,6 +423,9 @@ def create_tech_stack_overview_heatmap(metrics: ReportMetrics, locale: str = "en
 
     Shows top technologies with job count and normalized frequency.
     """
+    if not HAS_PLOTLY:
+        return _empty_figure()
+
     tech_data = metrics.tech_stack_counts[:12]  # Top 12 technologies
 
     if not tech_data:
