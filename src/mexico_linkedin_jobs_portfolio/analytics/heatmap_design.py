@@ -238,7 +238,7 @@ def create_plotly_heatmap(
         - No extra conversion needed for web
     """
     if not HAS_VIZ_DEPS:
-        return go.Figure()  # type: ignore
+        return None  # type: ignore
 
     if locale == "es":
         title = "Habilidades Tecnológicas por Nivel de Experiencia"
@@ -360,7 +360,7 @@ def plotly_complete_workflow(
     Returns ready-to-embed Plotly figure (no base64 conversion needed).
     """
     if not HAS_VIZ_DEPS:
-        return go.Figure()  # type: ignore
+        return None  # type: ignore
 
     pivot = build_tech_seniority_pivot_from_records(
         records,
@@ -369,7 +369,7 @@ def plotly_complete_workflow(
 
     if pivot.empty:
         print("Warning: No data available for heatmap")
-        return go.Figure()
+        return None  # type: ignore
 
     return create_plotly_heatmap(pivot, locale=locale)
 

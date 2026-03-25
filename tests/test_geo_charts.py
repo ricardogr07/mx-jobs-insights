@@ -54,7 +54,9 @@ def sample_metrics() -> ReportMetrics:
             DimensionCount("React", 15),
             DimensionCount("Java", 12),
         ),
-        company_counts=(
+        english_requirement_counts=(),
+        experience_bucket_counts=(),
+        top_company_counts=(
             DimensionCount("TechCorp", 8),
             DimensionCount("DataSys", 6),
         ),
@@ -103,8 +105,10 @@ class TestCityHeatmapLayer:
             remote_type_counts=(),
             seniority_counts=(),
             employment_type_counts=(),
-            tech_stack_counts=(),
-            company_counts=(),
+        tech_stack_counts=(),
+        english_requirement_counts=(),
+        experience_bucket_counts=(),
+            top_company_counts=(),
             industry_counts=(),
         )
 
@@ -133,7 +137,9 @@ class TestCityHeatmapLayer:
             seniority_counts=(),
             employment_type_counts=(),
             tech_stack_counts=(),
-            company_counts=(),
+            english_requirement_counts=(),
+            experience_bucket_counts=(),
+            top_company_counts=(),
             industry_counts=(),
         )
 
@@ -180,8 +186,10 @@ class TestCityClusterMap:
             remote_type_counts=(),
             seniority_counts=(),
             employment_type_counts=(),
-            tech_stack_counts=(),
-            company_counts=(),
+        tech_stack_counts=(),
+        english_requirement_counts=(),
+        experience_bucket_counts=(),
+            top_company_counts=(),
             industry_counts=(),
         )
 

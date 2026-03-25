@@ -6,6 +6,8 @@ This shows both approaches in action with sample data.
 import sys
 from datetime import date
 
+import pytest
+
 from mexico_linkedin_jobs_portfolio.analytics.dataset import JoinedObservationRecord
 from mexico_linkedin_jobs_portfolio.analytics.heatmap_design import (
     build_tech_seniority_pivot_from_records,
@@ -73,7 +75,14 @@ def create_sample_records() -> tuple[JoinedObservationRecord, ...]:
     return tuple(records)
 
 
-def test_pivot_building():
+@pytest.fixture
+def pivot():
+    """Fixture: Build pivot table from sample records."""
+    records = create_sample_records()
+    return build_tech_seniority_pivot_from_records(records, top_n_skills=8)
+
+
+def test_pivot_building(pivot):
     """Test: Records → Pivot Table."""
     print("\n" + "=" * 70)
     print("TEST 1: Building Pivot Table from Records")
@@ -82,7 +91,6 @@ def test_pivot_building():
     records = create_sample_records()
     print(f"✓ Created {len(records)} sample records")
 
-    pivot = build_tech_seniority_pivot_from_records(records, top_n_skills=8)
     print(f"\n✓ Built pivot table: {pivot.shape[0]} skills × {pivot.shape[1]} seniority levels\n")
     print(pivot)
     print(f"\nTotal jobs across all cells: {pivot.values.sum()}")

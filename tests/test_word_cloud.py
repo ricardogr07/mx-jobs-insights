@@ -57,7 +57,9 @@ def sample_metrics_with_tech() -> ReportMetrics:
             DimensionCount("Ruby", 2),
             DimensionCount("PHP", 1),
         ),
-        company_counts=(
+        english_requirement_counts=(),
+        experience_bucket_counts=(),
+        top_company_counts=(
             DimensionCount("TechCorp", 8),
             DimensionCount("DataSys", 6),
         ),
@@ -88,7 +90,9 @@ def empty_metrics() -> ReportMetrics:
         seniority_counts=(),
         employment_type_counts=(),
         tech_stack_counts=(),  # Empty tech stack
-        company_counts=(),
+        english_requirement_counts=(),
+        experience_bucket_counts=(),
+        top_company_counts=(),
         industry_counts=(),
     )
 
@@ -130,7 +134,9 @@ class TestWordCloudGeneration:
             seniority_counts=(),
             employment_type_counts=(),
             tech_stack_counts=(DimensionCount("Python", 5),),  # Only one tech
-            company_counts=(),
+            english_requirement_counts=(),
+            experience_bucket_counts=(),
+            top_company_counts=(),
             industry_counts=(),
         )
 
@@ -164,7 +170,9 @@ class TestWordCloudGeneration:
                 DimensionCount("Swift", 1),
                 DimensionCount("Kotlin", 1),
             ),  # 25 technologies total
-            company_counts=sample_metrics_with_tech.company_counts,
+            english_requirement_counts=sample_metrics_with_tech.english_requirement_counts,
+            experience_bucket_counts=sample_metrics_with_tech.experience_bucket_counts,
+            top_company_counts=sample_metrics_with_tech.top_company_counts,
             industry_counts=sample_metrics_with_tech.industry_counts,
         )
 

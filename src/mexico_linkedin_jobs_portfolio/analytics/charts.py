@@ -343,7 +343,7 @@ def create_seniority_skills_heatmap(metrics: ReportMetrics, locale: str = "en") 
         height=400,
         annotations=[
             dict(
-                text="Chart data aggregation coming in Phase 2",
+                text="No seniority data available",
                 xref="paper",
                 yref="paper",
                 x=0.5,
