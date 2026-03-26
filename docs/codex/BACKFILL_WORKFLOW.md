@@ -334,7 +334,7 @@ gh workflow run 'Backfill Historical Reports' --ref main -f regenerate_site=fals
 ### Parallel Report Generation (Advanced)
 
 Currently, reports generate sequentially. For faster backfill:
-1. Edit [scripts/backfill_historical_reports.py](../../scripts/backfill_historical_reports.py)
+1. Edit `scripts/backfill_historical_reports.py`
 2. Use `concurrent.futures.ThreadPoolExecutor` to parallelize report generation
 3. Be mindful of API rate limits
 
@@ -356,9 +356,9 @@ ls -la artifacts/reports/monthly/
 
 ## Related Documentation
 
-- **Backfill Script:** [scripts/backfill_historical_reports.py](../../scripts/backfill_historical_reports.py)
-- **Workflow YAML:** [.github/workflows/backfill-historical-reports.yml](../../.github/workflows/backfill-historical-reports.yml)
-- **CI/Pre-push Rules:** [CI_PRE_PUSH_CHECKLIST.md](../../CI_PRE_PUSH_CHECKLIST.md)
+- **Backfill Script:** `scripts/backfill_historical_reports.py`
+- **Workflow YAML:** `.github/workflows/backfill-historical-reports.yml`
+- **CI/Pre-push Rules:** `CI_PRE_PUSH_CHECKLIST.md`
 - **GitHub Pages Setup:** https://docs.github.com/en/pages
 - **GitHub Actions:** https://docs.github.com/en/actions
 

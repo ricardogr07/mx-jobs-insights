@@ -9,5 +9,9 @@ nav:
   - Monthly Archive: public/monthly/index.md
   - Methodology: public/methodology.md
   - Downloads: public/downloads/index.md
+  - Documentation:
+      - Heatmap Design: HEATMAP_DESIGN.md
+      - Heatmap Implementation: HEATMAP_IMPLEMENTATION_SUMMARY.md
+      - Heatmap Quick Start: HEATMAP_QUICK_START.md
 plugins:
   - search

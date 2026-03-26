@@ -220,9 +220,9 @@ App shows report timestamps. If data is stale:
 
 ## References
 
-- **App Code:** [interfaces/streamlit/app.py](../../src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py)
-- **Data Models:** [models/reporting.py](../../src/mexico_linkedin_jobs_portfolio/models/reporting.py)
-- **Curated Data:** [analytics/dataset.py](../../src/mexico_linkedin_jobs_portfolio/analytics/dataset.py)
+- **App Code:** `src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py`
+- **Data Models:** `src/mexico_linkedin_jobs_portfolio/models/reporting.py`
+- **Curated Data:** `src/mexico_linkedin_jobs_portfolio/analytics/dataset.py`
 - **Streamlit Docs:** https://docs.streamlit.io/
 
 ## Next Steps
