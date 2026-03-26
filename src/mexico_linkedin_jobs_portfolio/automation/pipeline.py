@@ -99,11 +99,13 @@ class MkDocsBuildRunner:
         rendered: list[str] = []
         docs_dir_replaced = False
         site_dir_replaced = False
-        for line in lines:
+        docs_dir_index = -1
+        for idx, line in enumerate(lines):
             stripped = line.strip()
             if stripped.startswith("docs_dir:"):
                 rendered.append(f"docs_dir: {docs_root.as_posix()}")
                 docs_dir_replaced = True
+                docs_dir_index = len(rendered) - 1
                 continue
             if stripped.startswith("site_dir:"):
                 rendered.append(f"site_dir: {site_output_root.as_posix()}")
@@ -113,8 +115,10 @@ class MkDocsBuildRunner:
 
         if not docs_dir_replaced:
             rendered.insert(0, f"docs_dir: {docs_root.as_posix()}")
+            docs_dir_index = 0
         if not site_dir_replaced:
-            insertion_index = 1 if rendered else 0
+            # Insert site_dir after docs_dir, or at position 1 if no docs_dir found
+            insertion_index = docs_dir_index + 1 if docs_dir_index >= 0 else 1
             rendered.insert(insertion_index, f"site_dir: {site_output_root.as_posix()}")
         return "\n".join(rendered) + "\n"
 
