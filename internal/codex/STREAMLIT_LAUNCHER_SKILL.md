@@ -219,7 +219,7 @@ When users ask to run/launch/start the Streamlit dashboard:
 
 ## Related Documentation
 
-- **Streamlit Workflow Guide:** [STREAMLIT_LOCAL_WORKFLOW.md](STREAMLIT_LOCAL_WORKFLOW.md)
+- **Streamlit Workflow Guide:** [STREAMLIT_LOCAL_WORKFLOW.md](../../docs/codex/STREAMLIT_LOCAL_WORKFLOW.md)
 - **App Source Code:** [interfaces/streamlit/app.py](../../src/mexico_linkedin_jobs_portfolio/interfaces/streamlit/app.py)
 - **Project Setup:** [pyproject.toml](../../pyproject.toml)
 - **Streamlit Docs:** https://docs.streamlit.io/

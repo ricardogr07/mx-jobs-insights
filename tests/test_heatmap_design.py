@@ -10,6 +10,7 @@ import pytest
 
 from mexico_linkedin_jobs_portfolio.analytics.dataset import JoinedObservationRecord
 from mexico_linkedin_jobs_portfolio.analytics.heatmap_design import (
+    HAS_VIZ_DEPS,
     build_tech_seniority_pivot_from_records,
     create_plotly_heatmap,
     create_seaborn_heatmap,
@@ -135,6 +136,7 @@ def test_seaborn_workflow(pivot):
     return fig, data_uri
 
 
+@pytest.mark.skipif(not HAS_VIZ_DEPS, reason="Visualization dependencies not available")
 def test_plotly_workflow(pivot):
     """Test: Pivot → Plotly Heatmap."""
     print("\n" + "=" * 70)
@@ -146,6 +148,7 @@ def test_plotly_workflow(pivot):
         title="Tech Skills Distribution by Seniority",
         colorscale="RdYlGn",
     )
+    assert fig is not None, "create_plotly_heatmap returned None"
     print("✓ Created Plotly interactive heatmap")
     print(f"  - Figure type: {type(fig).__name__}")
     print(f"  - Layout: {fig.layout.title.text}")
@@ -159,6 +162,7 @@ def test_plotly_workflow(pivot):
     return fig
 
 
+@pytest.mark.skipif(not HAS_VIZ_DEPS, reason="Visualization dependencies not available")
 def test_complete_workflows():
     """Test: Full end-to-end workflows."""
     print("\n" + "=" * 70)
@@ -176,6 +180,7 @@ def test_complete_workflows():
     # Plotly workflow
     print("Plotly workflow:")
     fig = plotly_complete_workflow(records, locale="en")
+    assert fig is not None, "plotly_complete_workflow returned None"
     print(f"✓ Generated Plotly figure: {fig.layout.title.text}")
 
     # Show how to use in Streamlit (example)
