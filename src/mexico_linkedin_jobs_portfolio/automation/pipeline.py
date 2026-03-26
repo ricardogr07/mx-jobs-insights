@@ -100,7 +100,7 @@ class MkDocsBuildRunner:
         docs_dir_replaced = False
         site_dir_replaced = False
         docs_dir_index = -1
-        for idx, line in enumerate(lines):
+        for _idx, line in enumerate(lines):
             stripped = line.strip()
             if stripped.startswith("docs_dir:"):
                 rendered.append(f"docs_dir: {docs_root.as_posix()}")
