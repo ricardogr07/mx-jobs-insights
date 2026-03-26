@@ -44,6 +44,7 @@ dev = [
   "streamlit>=1.32.0",
   "tox>=4.21.2",
   "plotly>=5.24.0",
+  "kaleido>=0.2.1",
   "seaborn>=0.13.0",
   "folium>=0.14.0",
   "wordcloud>=1.9.0",
@@ -55,6 +56,7 @@ docs = [
 ]
 viz = [
   "plotly>=5.24.0",
+  "kaleido>=0.2.1",
   "seaborn>=0.13.0",
   "folium>=0.14.0",
   "wordcloud>=1.9.0",
