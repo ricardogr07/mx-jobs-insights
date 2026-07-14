@@ -25,8 +25,7 @@ def test_publish_workflow_contract() -> None:
     assert "cron: '0 14 * * 1'" in text or 'cron: "0 14 * * 1"' in text
     assert "cron: '0 15 1 * *'" in text or 'cron: "0 15 1 * *"' in text
     assert "permissions:" in text
-    # contents: write so the run can commit the refreshed narrative cache back.
-    assert "contents: write" in text
+    assert "contents: read" in text
     assert "pages: write" in text
     assert "id-token: write" in text
     assert "concurrency:" in text
