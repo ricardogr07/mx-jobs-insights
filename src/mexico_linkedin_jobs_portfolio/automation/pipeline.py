@@ -496,7 +496,9 @@ class PipelineOrchestrator:
         or changed periods reach the narration client and its OpenAI call.
         """
 
-        first_date = _earliest_reported_date(observations)
+        first_date = _earliest_period_date(
+            observations, by_posted_date=config.filter_by_posted_date
+        )
         counts = {"weekly": 0, "monthly": 0}
         notes: list[str] = []
         primary_summary: ReportRunSummary | None = None
@@ -666,12 +668,20 @@ class PipelineOrchestrator:
         return finalized, exit_code
 
 
-def _earliest_reported_date(observations: list) -> date:
-    """Return the earliest posted (or observed) date across canonical observations."""
+def _earliest_period_date(observations: list, *, by_posted_date: bool) -> date:
+    """Return the earliest observation date on the same basis the report step filters by.
 
-    candidate_dates = [
-        getattr(record, "reported_date", None) or getattr(record, "observed_at", None)
-        for record in observations
-    ]
-    valid_dates = [value for value in candidate_dates if value is not None]
-    return min(valid_dates) if valid_dates else date.today()
+    Archive enumeration must start on the same date field each period buckets by
+    (reported_date when filtering by posted date, otherwise observed_at); otherwise
+    periods with no observations on that basis would be published as empty leading pages.
+    """
+
+    candidate_dates: list[date] = []
+    for record in observations:
+        if by_posted_date:
+            value = getattr(record, "reported_date", None) or getattr(record, "observed_at", None)
+        else:
+            value = getattr(record, "observed_at", None)
+        if value is not None:
+            candidate_dates.append(value)
+    return min(candidate_dates) if candidate_dates else date.today()
