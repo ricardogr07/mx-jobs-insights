@@ -65,9 +65,11 @@ class PipelineConfig:
     curated_root: Path = CuratedStorageConfig().root
     report_root: Path = Path("artifacts/reports")
     docs_root: Path = Path("docs")
+    narrative_cache_root: Path = Path("narratives")
     locale: ReportLocale = "all"
     as_of_date: date | None = None
     dry_run: bool = True
+    filter_by_posted_date: bool = False
     openai_api_key: str | None = None
     openai_model: str | None = None
     public_key_salt: str | None = None
@@ -106,6 +108,8 @@ class PipelineConfig:
             openai_model=self.openai_model,
             public_key_salt=self.public_key_salt,
             openai_base_url=self.openai_base_url,
+            filter_by_posted_date=self.filter_by_posted_date,
+            narrative_cache_root=self.narrative_cache_root_resolved,
         )
 
     @property
@@ -131,6 +135,10 @@ class PipelineConfig:
     @property
     def pipeline_artifacts(self) -> PipelineArtifactConfig:
         return PipelineArtifactConfig()
+
+    @property
+    def narrative_cache_root_resolved(self) -> Path:
+        return self.narrative_cache_root.expanduser().resolve(strict=False)
 
     @property
     def locale_coverage(self) -> tuple[str, ...]:

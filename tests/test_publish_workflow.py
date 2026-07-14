@@ -25,7 +25,8 @@ def test_publish_workflow_contract() -> None:
     assert "cron: '0 14 * * 1'" in text or 'cron: "0 14 * * 1"' in text
     assert "cron: '0 15 1 * *'" in text or 'cron: "0 15 1 * *"' in text
     assert "permissions:" in text
-    assert "contents: read" in text
+    # contents: write so the run can commit the refreshed narrative cache back.
+    assert "contents: write" in text
     assert "pages: write" in text
     assert "id-token: write" in text
     assert "concurrency:" in text
@@ -39,6 +40,8 @@ def test_publish_workflow_contract() -> None:
     assert "MX_JOBS_OPENAI_MODEL" in text
     assert "MX_JOBS_PUBLIC_KEY_SALT" in text
     assert "pipeline --cadence" in text or "pipeline" in text
+    assert "--filter-by-posted-date" in text
+    assert "narratives" in text
     assert "actions/upload-pages-artifact" in text
     assert "actions/deploy-pages" in text
     assert "deploy_pages" in text
