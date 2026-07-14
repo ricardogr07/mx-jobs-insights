@@ -10,6 +10,7 @@ from mexico_linkedin_jobs_portfolio.analytics.metrics import (
     build_report_metrics,
 )
 from mexico_linkedin_jobs_portfolio.analytics.periods import (
+    enumerate_closed_periods,
     resolve_closed_period,
     resolve_reference_date,
 )
@@ -43,6 +44,7 @@ try:
         "build_report_metrics",
         "resolve_closed_period",
         "resolve_reference_date",
+        "enumerate_closed_periods",
         "create_all_charts",
         "create_employment_type_chart",
         "create_industry_distribution_chart",
@@ -69,4 +71,5 @@ except ImportError:
         "build_report_metrics",
         "resolve_closed_period",
         "resolve_reference_date",
+        "enumerate_closed_periods",
     ]

@@ -17,6 +17,7 @@ from mexico_linkedin_jobs_portfolio.models import (
     ReportMetrics,
     ReportRunSummary,
 )
+from mexico_linkedin_jobs_portfolio.reporting.narrative_cache import CachingNarrationClient
 from mexico_linkedin_jobs_portfolio.reporting.openai_narration import (
     NarrationClient,
     OpenAINarrationClient,
@@ -118,6 +119,10 @@ class ReportPipeline:
             model=config.openai_model or "",
             base_url=config.openai_base_url,
         )
+        if config.narrative_cache_root is not None:
+            narration_client = CachingNarrationClient(
+                inner=narration_client, cache_root=config.narrative_cache_root
+            )
         try:
             narrative = narration_client.generate_bilingual_narrative(metrics_result.metrics)
         except Exception as exc:

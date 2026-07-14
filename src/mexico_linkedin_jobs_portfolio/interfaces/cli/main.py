@@ -200,6 +200,16 @@ def build_parser() -> argparse.ArgumentParser:
         default="docs",
         help="Directory where public MkDocs source pages should be generated.",
     )
+    pipeline_parser.add_argument(
+        "--narrative-cache-root",
+        default="narratives",
+        help="Directory holding the committed per-period narrative cache reused across runs.",
+    )
+    pipeline_parser.add_argument(
+        "--filter-by-posted-date",
+        action="store_true",
+        help="Bucket jobs by Posted On date (reported_date) instead of observation date.",
+    )
 
     return parser
 
@@ -261,9 +271,11 @@ def build_pipeline_config(args: argparse.Namespace) -> PipelineConfig:
         curated_root=Path(args.curated_root),
         report_root=Path(args.report_root),
         docs_root=Path(args.docs_root),
+        narrative_cache_root=Path(getattr(args, "narrative_cache_root", "narratives")),
         locale=cast(ReportLocale, args.locale),
         as_of_date=as_of_date,
         dry_run=bool(args.dry_run),
+        filter_by_posted_date=bool(getattr(args, "filter_by_posted_date", False)),
         openai_api_key=os.environ.get(OPENAI_API_KEY_ENV),
         openai_model=os.environ.get(OPENAI_MODEL_ENV),
         public_key_salt=os.environ.get(PUBLIC_KEY_SALT_ENV),

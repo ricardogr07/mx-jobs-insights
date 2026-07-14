@@ -145,18 +145,6 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
     maps_html = _render_maps_section(metrics, locale)
     analysis_html = _render_analysis_section(metrics, locale)
 
-    # Build dimension sections
-    sections = [
-        _render_html_list(text["cities"], metrics.city_counts, locale),
-        _render_html_list(text["remote"], metrics.remote_type_counts, locale),
-        _render_html_list(text["seniority"], metrics.seniority_counts, locale),
-        _render_html_list(text["employment"], metrics.employment_type_counts, locale),
-        _render_html_list(text["industry"], metrics.industry_counts, locale),
-        _render_html_list(text["english"], metrics.english_requirement_counts, locale),
-        _render_html_list(text["experience"], metrics.experience_bucket_counts, locale),
-        _render_html_list(text["tech_stack"], metrics.tech_stack_counts, locale),
-        _render_html_list(text["companies"], metrics.top_company_counts, locale),
-    ]
     bullet_html = "".join(f"<li>{escape(item)}</li>" for item in bullets)
 
     return "\n".join(
@@ -180,8 +168,7 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
             '    <a href="#overview">Overview</a> | ',
             '    <a href="#charts">Charts</a> | ',
             '    <a href="#maps">Maps</a> | ',
-            '    <a href="#analysis">Analysis</a> | ',
-            '    <a href="#details">Details</a>',
+            '    <a href="#analysis">Analysis</a>',
             "  </nav>",
             '  <main class="report-content">',
             '    <section id="overview" class="section-overview">',
@@ -200,10 +187,6 @@ def render_html(metrics: ReportMetrics, narrative: GeneratedNarrative, locale: s
             charts_html,
             maps_html,
             analysis_html,
-            '    <section id="details" class="section-details">',
-            '      <h2 style="margin-top: 2rem;">Data Breakdown</h2>',
-            *sections,
-            "    </section>",
             '    <footer class="report-footer">',
             f"      <p><small>Period ID: {escape(metrics.period.period_id)} | Range: {escape(metrics.period.start_date.isoformat())} to {escape(metrics.period.end_date.isoformat())}</small></p>",
             "    </footer>",
@@ -736,21 +719,6 @@ def _render_markdown_section(
     lines.extend([f"- {item.label}: {item.count}" for item in items])
     lines.append("")
     return lines
-
-
-def _render_html_list(title: str, items: tuple[DimensionCount, ...], locale: str) -> str:
-    if items:
-        rows = "".join(f"<li>{escape(item.label)}: {item.count}</li>" for item in items)
-    else:
-        rows = f"<li>{escape(_TEXT[locale]['empty'])}</li>"
-    return "\n".join(
-        [
-            "  <section>",
-            f"    <h2>{escape(title)}</h2>",
-            f"    <ul>{rows}</ul>",
-            "  </section>",
-        ]
-    )
 
 
 def _format_period_label(metrics: ReportMetrics, locale: str) -> str:

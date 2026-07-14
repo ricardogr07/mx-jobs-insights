@@ -49,7 +49,23 @@ jobs:
 
       - name: Build docs strictly
         id: mkdocs
-        run: python -m mkdocs build --strict
+        env:
+          MX_JOBS_OPENAI_BASE_URL: mock://responses
+          OPENAI_API_KEY: ci-mock
+          MX_JOBS_OPENAI_MODEL: ci-mock
+          MX_JOBS_PUBLIC_KEY_SALT: ci-mock
+        run: |
+          # docs/ public pages are generated, not committed. Build them from the
+          # fixture with a mock model, then validate the strict MkDocs build.
+          python -m mexico_linkedin_jobs_portfolio pipeline \
+            --cadence weekly --source auto \
+            --upstream-root tests/data/upstream_workspace \
+            --curated-root artifacts/ci/curated \
+            --report-root artifacts/ci/reports \
+            --docs-root docs \
+            --narrative-cache-root artifacts/ci/narratives \
+            --locale all --as-of 2026-04-01 --filter-by-posted-date
+          python -m mkdocs build --strict
 
       - name: Build package
         id: build

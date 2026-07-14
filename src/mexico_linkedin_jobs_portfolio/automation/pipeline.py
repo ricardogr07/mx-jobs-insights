@@ -7,10 +7,14 @@ import shutil
 import subprocess
 import sys
 from dataclasses import replace
+from datetime import date
 from pathlib import Path
 from uuid import uuid4
 
-from mexico_linkedin_jobs_portfolio.analytics import resolve_closed_period
+from mexico_linkedin_jobs_portfolio.analytics import (
+    enumerate_closed_periods,
+    resolve_closed_period,
+)
 from mexico_linkedin_jobs_portfolio.automation.upstream_sync import GitUpstreamWorkspaceSeeder
 from mexico_linkedin_jobs_portfolio.cloud import BigQueryExporter, CloudArtifactPublisher
 from mexico_linkedin_jobs_portfolio.config import PipelineConfig
@@ -20,6 +24,7 @@ from mexico_linkedin_jobs_portfolio.models import (
     CloudSyncResult,
     IngestionRunSummary,
     PipelineRunSummary,
+    ReportRunSummary,
     WorkspaceValidationResult,
 )
 from mexico_linkedin_jobs_portfolio.presentation import SitePipeline
@@ -269,8 +274,10 @@ class PipelineOrchestrator:
         write_result = DuckDBCuratedStore(config.curated_storage).persist_batch(batch)
         notes.append(f"Wrote curated outputs to {write_result.duckdb_path}.")
 
-        report_summary, report_exit_code = self.report_pipeline.run(config.report_config)
-        notes.extend(report_summary.notes)
+        report_summary, report_exit_code, archive_notes = self._regenerate_archive(
+            config, observations, primary_period=period
+        )
+        notes.extend(archive_notes)
         if report_exit_code != 0:
             summary = self._build_summary(
                 config,
@@ -475,6 +482,61 @@ class PipelineOrchestrator:
         )
         return self._finalize(config, summary, 0)
 
+    def _regenerate_archive(
+        self,
+        config: PipelineConfig,
+        observations: list,
+        *,
+        primary_period,
+    ) -> tuple[ReportRunSummary, int, list[str]]:
+        """Regenerate every closed weekly and monthly period into the report root.
+
+        The published archive is rebuilt from source on every run and can never be
+        overwritten. The committed narrative cache keeps this cheap: only genuinely new
+        or changed periods reach the narration client and its OpenAI call.
+        """
+
+        first_date = _earliest_period_date(
+            observations, by_posted_date=config.filter_by_posted_date
+        )
+        counts = {"weekly": 0, "monthly": 0}
+        notes: list[str] = []
+        primary_summary: ReportRunSummary | None = None
+
+        for cadence in ("weekly", "monthly"):
+            for window in enumerate_closed_periods(cadence, first_date, config.as_of_date):
+                period_config = replace(
+                    config.report_config,
+                    cadence=cadence,
+                    as_of_date=window.reference_date,
+                )
+                period_summary, period_exit_code = self.report_pipeline.run(period_config)
+                if period_exit_code != 0:
+                    notes.append(
+                        f"Report generation failed for {cadence} period {window.period_id}: "
+                        f"{period_summary.status}."
+                    )
+                    notes.extend(period_summary.notes)
+                    return period_summary, 1, notes
+                counts[cadence] += 1
+                if (
+                    cadence == primary_period.cadence
+                    and window.period_id == primary_period.period_id
+                ):
+                    primary_summary = period_summary
+
+        if primary_summary is None:
+            primary_summary, primary_exit_code = self.report_pipeline.run(config.report_config)
+            if primary_exit_code != 0:
+                notes.extend(primary_summary.notes)
+                return primary_summary, 1, notes
+
+        notes.append(
+            f"Rebuilt the full archive from {first_date.isoformat()}: "
+            f"{counts['weekly']} weekly and {counts['monthly']} monthly period report(s)."
+        )
+        return primary_summary, 0, notes
+
     def _project_docs_root(self) -> Path:
         builder_root = getattr(self.docs_builder, "project_root", Path.cwd())
         return (Path(builder_root).expanduser().resolve(strict=False) / "docs").resolve(
@@ -604,3 +666,22 @@ class PipelineOrchestrator:
             encoding="utf-8",
         )
         return finalized, exit_code
+
+
+def _earliest_period_date(observations: list, *, by_posted_date: bool) -> date:
+    """Return the earliest observation date on the same basis the report step filters by.
+
+    Archive enumeration must start on the same date field each period buckets by
+    (reported_date when filtering by posted date, otherwise observed_at); otherwise
+    periods with no observations on that basis would be published as empty leading pages.
+    """
+
+    candidate_dates: list[date] = []
+    for record in observations:
+        if by_posted_date:
+            value = getattr(record, "reported_date", None) or getattr(record, "observed_at", None)
+        else:
+            value = getattr(record, "observed_at", None)
+        if value is not None:
+            candidate_dates.append(value)
+    return min(candidate_dates) if candidate_dates else date.today()

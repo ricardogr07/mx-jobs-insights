@@ -92,10 +92,26 @@ class SitePipeline:
         generated_period_pages: list[Path] = []
         copied_assets: list[Path] = []
 
-        landing_path.write_text(
-            render_landing_page(
+        # Each page is written once per locale: the default locale (en) at the base
+        # name (index.md) and other locales at a suffixed name (index.es.md). The
+        # mkdocs-static-i18n plugin serves those variants behind a header language
+        # toggle, replacing the old mashed "English / Spanish" text on one page.
+        default_locale = "en" if "en" in config.locale_coverage else config.locale_coverage[0]
+
+        def write_localized(base_path: Path, render_for_locale) -> None:
+            for locale in config.locale_coverage:
+                target = (
+                    base_path
+                    if locale == default_locale
+                    else base_path.parent / f"{base_path.stem}.{locale}.md"
+                )
+                target.write_text(render_for_locale(locale), encoding="utf-8")
+
+        write_localized(
+            landing_path,
+            lambda locale: render_landing_page(
                 report_index,
-                locale_coverage=config.locale_coverage,
+                locale_coverage=(locale,),
                 landing_path=landing_path,
                 weekly_index_path=weekly_index_path,
                 monthly_index_path=monthly_index_path,
@@ -103,53 +119,52 @@ class SitePipeline:
                 downloads_index_path=downloads_index_path,
                 public_root=public_root,
             ),
-            encoding="utf-8",
         )
-        weekly_index_path.write_text(
-            render_archive_page(
+        write_localized(
+            weekly_index_path,
+            lambda locale: render_archive_page(
                 "weekly",
                 report_index.weekly_entries,
-                locale_coverage=config.locale_coverage,
+                locale_coverage=(locale,),
                 page_path=weekly_index_path,
                 public_root=public_root,
             ),
-            encoding="utf-8",
         )
-        monthly_index_path.write_text(
-            render_archive_page(
+        write_localized(
+            monthly_index_path,
+            lambda locale: render_archive_page(
                 "monthly",
                 report_index.monthly_entries,
-                locale_coverage=config.locale_coverage,
+                locale_coverage=(locale,),
                 page_path=monthly_index_path,
                 public_root=public_root,
             ),
-            encoding="utf-8",
         )
-        downloads_index_path.write_text(
-            render_downloads_page(
+        write_localized(
+            downloads_index_path,
+            lambda locale: render_downloads_page(
                 report_index,
-                locale_coverage=config.locale_coverage,
+                locale_coverage=(locale,),
                 page_path=downloads_index_path,
                 public_root=public_root,
             ),
-            encoding="utf-8",
         )
-        methodology_path.write_text(
-            render_methodology_page(locale_coverage=config.locale_coverage),
-            encoding="utf-8",
+        write_localized(
+            methodology_path,
+            lambda locale: render_methodology_page(locale_coverage=(locale,)),
         )
 
         for entry in report_index.entries:
             period_page = public_root / entry.cadence / f"{entry.period_id}.md"
             period_page.parent.mkdir(parents=True, exist_ok=True)
-            period_page.write_text(
-                render_period_page(
-                    entry,
-                    locale_coverage=config.locale_coverage,
-                    page_path=period_page,
+            write_localized(
+                period_page,
+                lambda locale, e=entry, pp=period_page: render_period_page(
+                    e,
+                    locale_coverage=(locale,),
+                    page_path=pp,
                     public_root=public_root,
                 ),
-                encoding="utf-8",
             )
             generated_period_pages.append(period_page)
             copied_assets.extend(self._copy_entry_assets(entry, config))

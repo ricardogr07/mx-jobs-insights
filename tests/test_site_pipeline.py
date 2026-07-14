@@ -79,9 +79,15 @@ def test_site_pipeline_write_generates_pages_and_public_assets(tmp_path: Path) -
     assert "job_url" not in header
     assert "description_text" not in header
 
+    # Pages are now split per locale: the English default at index.md and the Spanish
+    # variant at index.es.md, which the mkdocs-static-i18n toggle switches between.
     landing_text = (docs_root / "index.md").read_text(encoding="utf-8")
     assert "Latest Monthly Report" in landing_text
-    assert "Portafolio de Vacantes de LinkedIn en Mexico" in landing_text
+    assert "Portafolio de Vacantes de LinkedIn en Mexico" not in landing_text
+
+    es_landing_text = (docs_root / "index.es.md").read_text(encoding="utf-8")
+    assert "Portafolio de Vacantes de LinkedIn en Mexico" in es_landing_text
+    assert "Reporte Mensual Mas Reciente" in es_landing_text
 
 
 def test_site_pipeline_handles_empty_archive_root(tmp_path: Path) -> None:

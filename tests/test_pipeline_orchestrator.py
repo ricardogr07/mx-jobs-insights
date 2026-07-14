@@ -173,6 +173,7 @@ def _build_config(
         curated_root=tmp_path / "curated",
         report_root=tmp_path / "reports",
         docs_root=tmp_path / "docs",
+        narrative_cache_root=tmp_path / "narratives",
         as_of_date=as_of_date,
         dry_run=dry_run,
         openai_api_key="test-key",
