@@ -34,6 +34,10 @@ def test_publish_workflow_contract() -> None:
     assert "ricardogr07/LinkedInWebScraper" in text
     assert "ref: data" in text
     assert "path: LinkedInWebScraper" in text
+    # the sqlite is no longer on the data branch; it must come from the rolling release
+    assert "gh release download data-latest" in text
+    assert "--repo ricardogr07/LinkedInWebScraper" in text
+    assert "LinkedInWebScraper/state" in text
     assert "python -m pip install -e .[dev]" in text or 'python -m pip install -e ".[dev]"' in text
     assert "OPENAI_API_KEY" in text
     assert "MX_JOBS_OPENAI_MODEL" in text

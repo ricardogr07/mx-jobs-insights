@@ -128,6 +128,53 @@ def test_csv_source_adapter_rejects_missing_required_columns(tmp_path: Path) -> 
         CsvSourceAdapter().load(UpstreamWorkspaceConfig(root=root, source_mode="csv"))
 
 
+def test_csv_source_adapter_skips_rows_missing_required_values(tmp_path: Path) -> None:
+    """One blank required field costs that row, not the whole ingest."""
+
+    root = tmp_path / "LinkedInWebScraper"
+    root.mkdir()
+    good_row = {name: "" for name in CSV_FIELDNAMES} | {
+        "Title": "Senior Data Scientist",
+        "Location": "Monterrey, Nuevo Leon, Mexico",
+        "DatePosted": "2026-03-20",
+        "JobID": "job-1",
+    }
+    write_csv(
+        root / "exports" / "2026-03-22" / "a.csv",
+        [
+            good_row,
+            good_row | {"JobID": "job-2", "DatePosted": ""},
+            good_row | {"JobID": "job-3", "Location": "   "},
+            good_row | {"JobID": ""},
+            good_row | {"JobID": "job-5", "Title": ""},
+        ],
+    )
+
+    observations, entities, summary = CsvSourceAdapter().load(
+        UpstreamWorkspaceConfig(root=root, source_mode="csv")
+    )
+
+    assert [observation.job_id for observation in observations] == ["job-1"]
+    assert len(entities) == 1
+    assert summary.status == "csv_loaded"
+    assert any("Loaded 5 CSV rows" in note for note in summary.notes)
+    assert any("Skipped 4 row(s) missing a required" in note for note in summary.notes)
+
+
+def test_csv_source_adapter_rejects_a_file_with_no_usable_rows(tmp_path: Path) -> None:
+    """Skipping every row is data loss, not degradation, so it still fails loud."""
+
+    root = tmp_path / "LinkedInWebScraper"
+    root.mkdir()
+    write_csv(
+        root / "exports" / "2026-03-22" / "a.csv",
+        [{name: "" for name in CSV_FIELDNAMES} | {"Title": "Data Scientist"}],
+    )
+
+    with pytest.raises(RuntimeError, match="no usable rows"):
+        CsvSourceAdapter().load(UpstreamWorkspaceConfig(root=root, source_mode="csv"))
+
+
 def test_cli_csv_dry_run_outputs_loaded_counts(capsys, tmp_path: Path) -> None:
     root = copy_sample_workspace(tmp_path, sqlite=False, csv=True)
 

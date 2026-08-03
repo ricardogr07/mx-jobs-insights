@@ -2,11 +2,12 @@
 
 ## Upstream Repository
 - repository: `ricardogr07/LinkedInWebScraper`
-- primary branch for this repo: `data`
+- CSV exports: the `data` branch
+- SQLite state: asset `linkedin_jobs.sqlite` on the rolling `data-latest` release (no longer stored in git)
 - local default workspace path: `../LinkedInWebScraper`
 
 ## Supported Inputs
-- `state/linkedin_jobs.sqlite`
+- `state/linkedin_jobs.sqlite` (place the downloaded release asset here; CI does this in the publish workflow)
 - `exports/latest/*.csv`
 - `exports/YYYY-MM-DD/*.csv`
 

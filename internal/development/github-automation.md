@@ -22,7 +22,9 @@ The `pipeline` CLI accepts:
 - `--curated-root`
 - `--report-root`
 - `--docs-root`
+- `--narrative-cache-root`
 - `--locale {en,es,all}`
+- `--filter-by-posted-date`
 - `--dry-run`
 
 Non-dry-run runs require the same report runtime environment used by `report`.
@@ -43,6 +45,7 @@ The publication workflow is `.github/workflows/publish-portfolio-site.yml`, disp
 
 It:
 - checks out this repo plus `ricardogr07/LinkedInWebScraper@data`
+- downloads the `linkedin_jobs.sqlite` asset from the upstream `data-latest` release into `LinkedInWebScraper/state/`, because the SQLite state is no longer committed to the `data` branch
 - installs the repo with `python -m pip install -e .[dev]`
 - runs `pipeline` with `--upstream-root LinkedInWebScraper`
 - uploads the built `site/` directory as the Pages artifact
