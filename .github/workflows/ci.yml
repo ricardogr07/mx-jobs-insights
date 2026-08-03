@@ -41,7 +41,9 @@ jobs:
 
       - name: Install build tools
         id: install_build
-        run: python -m pip install wheel build
+        # --no-isolation skips installing build-system.requires, so setuptools
+        # has to be here: python 3.12 dropped the bundled copy 3.11 provided.
+        run: python -m pip install wheel build setuptools
 
       - name: Run Ruff
         id: ruff
