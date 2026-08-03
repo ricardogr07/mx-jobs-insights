@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -14,7 +15,11 @@ from mexico_linkedin_jobs_portfolio.models import (
     PeriodWindow,
     ReportMetrics,
 )
-from mexico_linkedin_jobs_portfolio.reporting.narrative_cache import CachingNarrationClient
+from mexico_linkedin_jobs_portfolio.reporting.narrative_cache import (
+    CachingNarrationClient,
+    metrics_cache_key,
+    narrative_to_dict,
+)
 
 
 def test_enumerate_weekly_reaches_latest_and_is_consecutive() -> None:
@@ -89,13 +94,15 @@ def test_caching_client_reuses_committed_narrative_across_runs(tmp_path: Path) -
     inner = _CountingClient()
     metrics = _metrics()
 
-    first_run = CachingNarrationClient(inner=inner, cache_root=tmp_path)
+    first_run = CachingNarrationClient(inner=inner, cache_root=tmp_path, provider="openai")
     generated = first_run.generate_bilingual_narrative(metrics)
     assert inner.calls == 1
-    assert (tmp_path / "weekly" / "2026-W10.json").is_file()
+    # entries are namespaced by provider, never written to the legacy location
+    assert (tmp_path / "openai" / "weekly" / "2026-W10.json").is_file()
+    assert not (tmp_path / "weekly" / "2026-W10.json").exists()
 
-    # A fresh client models a later run: the committed cache is reused, no new OpenAI call.
-    second_run = CachingNarrationClient(inner=inner, cache_root=tmp_path)
+    # A fresh client models a later run: the committed cache is reused, no new provider call.
+    second_run = CachingNarrationClient(inner=inner, cache_root=tmp_path, provider="openai")
     reused = second_run.generate_bilingual_narrative(metrics)
     assert inner.calls == 1
     assert reused == generated
@@ -103,9 +110,74 @@ def test_caching_client_reuses_committed_narrative_across_runs(tmp_path: Path) -
 
 def test_caching_client_regenerates_when_metrics_change(tmp_path: Path) -> None:
     inner = _CountingClient()
-    client = CachingNarrationClient(inner=inner, cache_root=tmp_path)
+    client = CachingNarrationClient(inner=inner, cache_root=tmp_path, provider="openai")
 
     client.generate_bilingual_narrative(_metrics(job_count=5))
     client.generate_bilingual_narrative(_metrics(job_count=99))
 
     assert inner.calls == 2
+
+
+def test_caching_client_regenerates_when_the_provider_changes(tmp_path: Path) -> None:
+    inner = _CountingClient()
+    metrics = _metrics()
+
+    openai_narrative = CachingNarrationClient(
+        inner=inner, cache_root=tmp_path, provider="openai"
+    ).generate_bilingual_narrative(metrics)
+    assert inner.calls == 1
+
+    # Switching providers must reach the wrapped client instead of republishing the
+    # other provider's text, which is the only way a provider switch gets verified.
+    anthropic_client = CachingNarrationClient(
+        inner=inner, cache_root=tmp_path, provider="anthropic"
+    )
+    anthropic_narrative = anthropic_client.generate_bilingual_narrative(metrics)
+
+    assert inner.calls == 2
+    assert anthropic_client.hits == 0
+    assert anthropic_narrative != openai_narrative
+    assert (tmp_path / "anthropic" / "weekly" / "2026-W10.json").is_file()
+    assert (tmp_path / "openai" / "weekly" / "2026-W10.json").is_file()
+
+
+def test_caching_client_reads_legacy_entries_for_the_default_provider(tmp_path: Path) -> None:
+    inner = _CountingClient()
+    metrics = _metrics()
+
+    # A pre-namespace entry, as committed by earlier runs.
+    legacy_path = tmp_path / "weekly" / "2026-W10.json"
+    legacy_path.parent.mkdir(parents=True, exist_ok=True)
+    legacy_path.write_text(
+        json.dumps(
+            {
+                "metrics_hash": metrics_cache_key(metrics),
+                "narrative": narrative_to_dict(
+                    GeneratedNarrative(
+                        model="legacy",
+                        en_headline="legacy headline",
+                        en_bullets=("a", "b", "c"),
+                        es_headline="titular heredado",
+                        es_bullets=("x", "y", "z"),
+                    )
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    openai_client = CachingNarrationClient(inner=inner, cache_root=tmp_path, provider="openai")
+    reused = openai_client.generate_bilingual_narrative(metrics)
+
+    assert inner.calls == 0
+    assert openai_client.hits == 1
+    assert reused.model == "legacy"
+
+    # A different provider must not inherit the legacy entry.
+    anthropic_client = CachingNarrationClient(
+        inner=inner, cache_root=tmp_path, provider="anthropic"
+    )
+    anthropic_client.generate_bilingual_narrative(metrics)
+
+    assert inner.calls == 1
+    assert anthropic_client.hits == 0

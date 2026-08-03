@@ -134,7 +134,9 @@ class ReportPipeline:
         narration_client = self.narration_client or _build_narration_client(config)
         if config.narrative_cache_root is not None:
             narration_client = CachingNarrationClient(
-                inner=narration_client, cache_root=config.narrative_cache_root
+                inner=narration_client,
+                cache_root=config.narrative_cache_root,
+                provider=config.llm_provider,
             )
         try:
             narrative = narration_client.generate_bilingual_narrative(metrics_result.metrics)
