@@ -22,6 +22,25 @@ from mexico_linkedin_jobs_portfolio.models import ReportMetrics
 # Cap every export so a missing or wedged browser costs one chart, not the run.
 CHART_EXPORT_TIMEOUT_SECONDS = float(os.environ.get("MX_JOBS_CHART_EXPORT_TIMEOUT", "60"))
 
+# One timeout proves the backend is unusable for this process, so later exports
+# skip straight to no-image instead of paying the timeout again.
+# ponytail: process-global, reset with reset_export_backend(); make it
+# per-backend only if a second rasterizer is ever added.
+_export_backend_wedged = False
+
+
+def _mark_export_backend_wedged() -> None:
+    global _export_backend_wedged
+    _export_backend_wedged = True
+
+
+def reset_export_backend() -> None:
+    """Re-enable exports after a timeout disabled them (tests, long-lived hosts)."""
+
+    global _export_backend_wedged
+    _export_backend_wedged = False
+
+
 # Mexican city coordinates (latitude, longitude) for mapping
 _CITY_COORDINATES = {
     "Mexico City": (19.4326, -99.1332),
@@ -80,7 +99,7 @@ def figure_to_base64_png(
     Any failure degrades to an empty string and the report renders without the
     image.
     """
-    if not HAS_PLOTLY or fig is None:
+    if not HAS_PLOTLY or fig is None or _export_backend_wedged:
         return ""
 
     receiver, sender = multiprocessing.Pipe(duplex=False)
@@ -95,6 +114,11 @@ def figure_to_base64_png(
         sender.close()  # only the child holds the write end now, so poll sees EOF
         if receiver.poll(timeout_seconds):
             img_bytes = receiver.recv()
+        else:
+            # A timeout means the browser is missing or wedged for the whole
+            # process, not for this one figure. A report renders 8 charts per
+            # locale, so retrying each would cost 8 x timeout per locale.
+            _mark_export_backend_wedged()
     except Exception:
         img_bytes = None
     finally:

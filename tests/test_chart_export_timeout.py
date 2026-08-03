@@ -23,6 +23,13 @@ def _figure():
     return go.Figure(data=[go.Bar(x=["a", "b"], y=[1, 2])])
 
 
+@pytest.fixture(autouse=True)
+def _reset_backend():
+    charts.reset_export_backend()
+    yield
+    charts.reset_export_backend()
+
+
 def test_export_returns_empty_and_bounded_when_backend_stalls() -> None:
     """A wedged or absent Chrome degrades to no image inside the timeout."""
     started = time.monotonic()
@@ -36,6 +43,20 @@ def test_export_returns_empty_and_bounded_when_backend_stalls() -> None:
 
 def test_export_handles_missing_plotly_and_none_figure() -> None:
     assert charts.figure_to_base64_png(None) == ""
+
+
+def test_one_timeout_disables_further_exports() -> None:
+    """A report renders 16 charts; a wedged backend must cost one timeout, not 16."""
+    first_started = time.monotonic()
+    charts.figure_to_base64_png(_figure(), timeout_seconds=5)
+    first_elapsed = time.monotonic() - first_started
+
+    if first_elapsed < 5:
+        pytest.skip("a working browser is present, so nothing was ever wedged")
+
+    second_started = time.monotonic()
+    assert charts.figure_to_base64_png(_figure(), timeout_seconds=5) == ""
+    assert time.monotonic() - second_started < 1, "second export paid the timeout again"
 
 
 def test_timeout_is_configurable_via_env(monkeypatch: pytest.MonkeyPatch) -> None:
