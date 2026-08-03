@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import base64
+import multiprocessing
+import os
 from io import BytesIO
+from typing import Any
 
 try:
     import plotly.graph_objects as go
@@ -14,6 +17,29 @@ except ImportError:
     go = None  # type: ignore
 
 from mexico_linkedin_jobs_portfolio.models import ReportMetrics
+
+# Kaleido needs a headless Chrome; without one it hangs rather than raising.
+# Cap every export so a missing or wedged browser costs one chart, not the run.
+CHART_EXPORT_TIMEOUT_SECONDS = float(os.environ.get("MX_JOBS_CHART_EXPORT_TIMEOUT", "60"))
+
+# One timeout proves the backend is unusable for this process, so later exports
+# skip straight to no-image instead of paying the timeout again.
+# ponytail: process-global, reset with reset_export_backend(); make it
+# per-backend only if a second rasterizer is ever added.
+_export_backend_wedged = False
+
+
+def _mark_export_backend_wedged() -> None:
+    global _export_backend_wedged
+    _export_backend_wedged = True
+
+
+def reset_export_backend() -> None:
+    """Re-enable exports after a timeout disabled them (tests, long-lived hosts)."""
+
+    global _export_backend_wedged
+    _export_backend_wedged = False
+
 
 # Mexican city coordinates (latitude, longitude) for mapping
 _CITY_COORDINATES = {
@@ -47,18 +73,63 @@ def _empty_figure() -> go.Figure:
     return go.Figure()  # type: ignore
 
 
-def figure_to_base64_png(fig: go.Figure, width: int = 1000, height: int = 600) -> str:
-    """Convert Plotly figure to base64-encoded PNG string for HTML embedding."""
-    if not HAS_PLOTLY or fig is None:
+def _export_png_worker(spec: str, width: int, height: int, conn: Any) -> None:
+    """Render a figure spec to PNG bytes in a child process."""
+    try:
+        import plotly.io as pio
+
+        conn.send(pio.from_json(spec).to_image(format="png", width=width, height=height))
+    except BaseException:  # noqa: BLE001 - the parent only needs "no image"
+        conn.send(None)
+    finally:
+        conn.close()
+
+
+def figure_to_base64_png(
+    fig: go.Figure,
+    width: int = 1000,
+    height: int = 600,
+    timeout_seconds: float = CHART_EXPORT_TIMEOUT_SECONDS,
+) -> str:
+    """Convert Plotly figure to base64-encoded PNG string for HTML embedding.
+
+    Kaleido drives a headless Chrome to rasterize. When no browser is installed
+    it blocks forever instead of raising, which would stall the whole report
+    pipeline, so the export runs in a child process we can actually kill.
+    Any failure degrades to an empty string and the report renders without the
+    image.
+    """
+    if not HAS_PLOTLY or fig is None or _export_backend_wedged:
         return ""
 
+    receiver, sender = multiprocessing.Pipe(duplex=False)
+    process = multiprocessing.Process(
+        target=_export_png_worker,
+        args=(fig.to_json(), width, height, sender),
+        daemon=True,
+    )
+    img_bytes: bytes | None = None
     try:
-        img_bytes = fig.to_image(format="png", width=width, height=height)
-        b64 = base64.b64encode(img_bytes).decode("utf-8")
-        return f"data:image/png;base64,{b64}"
+        process.start()
+        sender.close()  # only the child holds the write end now, so poll sees EOF
+        if receiver.poll(timeout_seconds):
+            img_bytes = receiver.recv()
+        else:
+            # A timeout means the browser is missing or wedged for the whole
+            # process, not for this one figure. A report renders 8 charts per
+            # locale, so retrying each would cost 8 x timeout per locale.
+            _mark_export_backend_wedged()
     except Exception:
-        # Fallback: return empty/placeholder if kaleido not installed
+        img_bytes = None
+    finally:
+        receiver.close()
+        if process.is_alive():
+            process.terminate()
+        process.join(timeout=5)
+
+    if not img_bytes:
         return ""
+    return f"data:image/png;base64,{base64.b64encode(img_bytes).decode('utf-8')}"
 
 
 def create_top_cities_chart(metrics: ReportMetrics, locale: str = "en") -> go.Figure:
