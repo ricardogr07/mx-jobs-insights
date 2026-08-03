@@ -44,7 +44,11 @@ dev = [
   "ruff>=0.6.9",
   "streamlit>=1.32.0",
   "tox>=4.21.2",
-  "plotly>=5.24.0",
+  # Kaleido 1.x dropped the kaleido.scopes API that plotly 5.x calls, and
+  # nothing links the two packages, so a resolver will happily pair them and
+  # every export fails at runtime. Plotly 6.2 is the first release declaring
+  # kaleido>=1.0.0; keep these two floors moving together.
+  "plotly>=6.2.0",
   "kaleido>=1.0.0",
   "seaborn>=0.13.0",
   "folium>=0.14.0",
@@ -57,7 +61,11 @@ docs = [
   "mkdocs-static-i18n>=1.2.3",
 ]
 viz = [
-  "plotly>=5.24.0",
+  # Kaleido 1.x dropped the kaleido.scopes API that plotly 5.x calls, and
+  # nothing links the two packages, so a resolver will happily pair them and
+  # every export fails at runtime. Plotly 6.2 is the first release declaring
+  # kaleido>=1.0.0; keep these two floors moving together.
+  "plotly>=6.2.0",
   "kaleido>=1.0.0",
   "seaborn>=0.13.0",
   "folium>=0.14.0",
