@@ -55,6 +55,18 @@ jobs:
           ref: data
           path: LinkedInWebScraper
 
+      - name: Restore upstream state from the data-latest release
+        id: restore_upstream_state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p LinkedInWebScraper/state
+          gh release download data-latest --repo ricardogr07/LinkedInWebScraper \
+            --pattern linkedin_jobs.sqlite --dir LinkedInWebScraper/state
+          ls -l LinkedInWebScraper/state
+
       - name: Set up Python
         id: setup_python
         uses: actions/setup-python@v5

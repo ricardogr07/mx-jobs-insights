@@ -60,6 +60,7 @@ class CsvSourceAdapter(SourceAdapter):
         duplicate_rows = 0
         latest_fallback_files = 0
         rows_loaded = 0
+        incomplete_rows = 0
 
         for source_file in source_files:
             if not source_file.derived_from_dated_directory:
@@ -75,18 +76,22 @@ class CsvSourceAdapter(SourceAdapter):
                         f"CSV source {source_file.path} is missing required columns: {missing_text}"
                     )
 
-                for row_index, row in enumerate(reader, start=1):
+                for row in reader:
                     rows_loaded += 1
                     payload = {key: value for key, value in row.items() if key}
-                    job_id = require_value(payload, "JobID", source_file.path, row_index)
-                    title = require_value(payload, "Title", source_file.path, row_index)
-                    location_text = require_value(payload, "Location", source_file.path, row_index)
-                    reported_date_text = require_value(
-                        payload, "DatePosted", source_file.path, row_index
-                    )
+                    required = {
+                        column: normalize_text(payload.get(column)) for column in _REQUIRED_COLUMNS
+                    }
+                    # Upstream exports carry occasional rows with a blank required
+                    # field. One unusable row must cost that row, not the whole run.
+                    if any(value is None for value in required.values()):
+                        incomplete_rows += 1
+                        continue
 
-                    city, state, country = split_location(location_text)
-                    reported_date = parse_date(reported_date_text)
+                    job_id = required["JobID"]
+                    title = required["Title"]
+                    city, state, country = split_location(required["Location"])
+                    reported_date = parse_date(required["DatePosted"])
                     observation_key = (job_id, source_file.observation_date, city)
                     if observation_key in observations_by_key:
                         duplicate_rows += 1
@@ -126,10 +131,20 @@ class CsvSourceAdapter(SourceAdapter):
                     )
 
         observations = list(observations_by_key.values())
+        if rows_loaded and not observations:
+            raise RuntimeError(
+                f"CSV source under {workspace.exports_path} yielded no usable rows: "
+                f"all {rows_loaded} row(s) were missing a required value."
+            )
+
         notes = [
             f"Loaded {rows_loaded} CSV rows across {len(source_files)} files.",
             f"Deduplicated {duplicate_rows} repeated job observations by job/date/city.",
         ]
+        if incomplete_rows:
+            notes.append(
+                f"Skipped {incomplete_rows} row(s) missing a required Title/Location/DatePosted/JobID value."
+            )
         if latest_fallback_files:
             notes.append(
                 f"Used file modification timestamps for {latest_fallback_files} latest-export file(s) without dated folder context."
@@ -189,12 +204,3 @@ def discover_csv_files(workspace: UpstreamWorkspaceConfig) -> list[CsvSourceFile
                 )
             )
     return files
-
-
-def require_value(row: dict[str, str], column: str, path: Path, row_index: int) -> str:
-    """Return a required CSV value or raise a descriptive error."""
-
-    value = normalize_text(row.get(column))
-    if value is None:
-        raise RuntimeError(f"CSV source {path} has an empty {column!r} value at row {row_index}.")
-    return value
