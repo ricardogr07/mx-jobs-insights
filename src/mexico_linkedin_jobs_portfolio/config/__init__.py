@@ -17,16 +17,26 @@ from mexico_linkedin_jobs_portfolio.config.pipeline import (
     PipelineConfig,
 )
 from mexico_linkedin_jobs_portfolio.config.reporting import (
+    ANTHROPIC_API_KEY_ENV,
+    ANTHROPIC_BASE_URL_ENV,
+    ANTHROPIC_MODEL_ENV,
+    DEFAULT_ANTHROPIC_BASE_URL,
+    DEFAULT_LLM_PROVIDER,
+    DEFAULT_OPENAI_BASE_URL,
+    LLM_PROVIDER_ENV,
+    LLM_PROVIDERS,
     OPENAI_API_KEY_ENV,
     OPENAI_BASE_URL_ENV,
     OPENAI_MODEL_ENV,
     PUBLIC_KEY_SALT_ENV,
     REPORT_CADENCES,
     REPORT_LOCALES,
+    LLMProvider,
     ReportCadence,
     ReportConfig,
     ReportLocale,
     ReportStorageConfig,
+    resolve_llm_provider,
 )
 from mexico_linkedin_jobs_portfolio.config.site import SITE_LOCALES, SiteArtifactConfig, SiteConfig
 from mexico_linkedin_jobs_portfolio.config.upstream import (
@@ -39,8 +49,17 @@ from mexico_linkedin_jobs_portfolio.config.upstream import (
 )
 
 __all__ = [
+    "ANTHROPIC_API_KEY_ENV",
+    "ANTHROPIC_BASE_URL_ENV",
+    "ANTHROPIC_MODEL_ENV",
     "BIGQUERY_PRIVATE_DATASET_ENV",
     "BIGQUERY_PUBLIC_DATASET_ENV",
+    "DEFAULT_ANTHROPIC_BASE_URL",
+    "DEFAULT_LLM_PROVIDER",
+    "DEFAULT_OPENAI_BASE_URL",
+    "LLM_PROVIDER_ENV",
+    "LLM_PROVIDERS",
+    "LLMProvider",
     "CuratedStorageConfig",
     "CloudEnvironmentConfig",
     "DEFAULT_UPSTREAM_REPO_URL",
@@ -70,4 +89,5 @@ __all__ = [
     "UPSTREAM_REF_ENV",
     "UPSTREAM_REPO_URL_ENV",
     "UpstreamWorkspaceConfig",
+    "resolve_llm_provider",
 ]

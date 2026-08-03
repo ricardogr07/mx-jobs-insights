@@ -6,9 +6,15 @@ import json
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 from mexico_linkedin_jobs_portfolio.analytics import CuratedDatasetReader, build_report_metrics
 from mexico_linkedin_jobs_portfolio.analytics.periods import resolve_closed_period
-from mexico_linkedin_jobs_portfolio.config import CuratedStorageConfig, ReportConfig
+from mexico_linkedin_jobs_portfolio.config import (
+    CuratedStorageConfig,
+    ReportConfig,
+    resolve_llm_provider,
+)
 from mexico_linkedin_jobs_portfolio.curation import DuckDBCuratedStore, build_curated_batch
 from mexico_linkedin_jobs_portfolio.interfaces.cli.main import main
 from mexico_linkedin_jobs_portfolio.models import (
@@ -17,7 +23,12 @@ from mexico_linkedin_jobs_portfolio.models import (
     GeneratedNarrative,
     IngestionRunSummary,
 )
-from mexico_linkedin_jobs_portfolio.reporting import ReportPipeline, build_narration_request_body
+from mexico_linkedin_jobs_portfolio.reporting import (
+    AnthropicNarrationClient,
+    ReportPipeline,
+    build_anthropic_narration_request_body,
+    build_narration_request_body,
+)
 
 
 class StubNarrationClient:
@@ -184,6 +195,145 @@ def test_build_narration_request_body_contains_only_aggregate_metrics(tmp_path: 
     assert "Acme Analytics" in serialized
 
 
+def build_sample_metrics(tmp_path: Path):
+    curated_root = write_curated_fixture(tmp_path)
+    dataset = CuratedDatasetReader().load(CuratedStorageConfig(root=curated_root))
+    return build_report_metrics(
+        dataset.records, resolve_closed_period("monthly", date(2026, 4, 1))
+    ).metrics
+
+
+def test_build_anthropic_narration_request_body_contains_only_aggregate_metrics(
+    tmp_path: Path,
+) -> None:
+    metrics = build_sample_metrics(tmp_path)
+
+    body = build_anthropic_narration_request_body(metrics, "claude-sonnet-5")
+    serialized = json.dumps(body, sort_keys=True)
+
+    assert body["model"] == "claude-sonnet-5"
+    # max_tokens is required, temperature is rejected, and thinking must be off
+    assert isinstance(body["max_tokens"], int)
+    assert "temperature" not in body
+    assert body["thinking"] == {"type": "disabled"}
+    # the system prompt is a top-level string, never a message
+    assert isinstance(body["system"], str)
+    assert [message["role"] for message in body["messages"]] == ["user"]
+    assert body["output_config"]["format"]["type"] == "json_schema"
+    assert body["output_config"]["format"]["schema"]["required"] == ["en", "es"]
+    assert "job-1" not in serialized
+    assert "https://example.com/jobs/1" not in serialized
+    assert "Build forecasting models for retail demand." not in serialized
+    assert "top_company_counts" in serialized
+
+
+def test_anthropic_narration_client_uses_mock_base_url_without_network(tmp_path: Path) -> None:
+    metrics = build_sample_metrics(tmp_path)
+    client = AnthropicNarrationClient(
+        api_key="test-key",
+        model="claude-sonnet-5",
+        base_url="mock://messages",
+    )
+
+    narrative = client.generate_bilingual_narrative(metrics)
+
+    assert narrative.model == "claude-sonnet-5"
+    assert len(narrative.en_bullets) == 3
+    assert len(narrative.es_bullets) == 3
+    assert "distinct jobs were observed during" in narrative.en_headline
+
+
+def test_anthropic_narration_client_reads_text_content_blocks(tmp_path: Path, monkeypatch) -> None:
+    metrics = build_sample_metrics(tmp_path)
+    payload = {
+        "model": "claude-sonnet-5-responded",
+        "stop_reason": "end_turn",
+        "content": [
+            {"type": "thinking", "thinking": ""},
+            {
+                "type": "text",
+                "text": json.dumps(
+                    {
+                        "en": {"headline": "EN headline", "bullets": ["a", "b", "c"]},
+                        "es": {"headline": "ES headline", "bullets": ["u", "d", "t"]},
+                    }
+                ),
+            },
+        ],
+    }
+    monkeypatch.setattr(
+        AnthropicNarrationClient,
+        "_post_json",
+        lambda self, body: payload,
+    )
+
+    narrative = AnthropicNarrationClient(
+        api_key="test-key", model="claude-sonnet-5"
+    ).generate_bilingual_narrative(metrics)
+
+    assert narrative.model == "claude-sonnet-5-responded"
+    assert narrative.en_headline == "EN headline"
+    assert narrative.es_bullets == ("u", "d", "t")
+
+
+def test_anthropic_narration_client_raises_on_refusal(tmp_path: Path, monkeypatch) -> None:
+    metrics = build_sample_metrics(tmp_path)
+    monkeypatch.setattr(
+        AnthropicNarrationClient,
+        "_post_json",
+        lambda self, body: {"stop_reason": "refusal", "stop_details": {"category": "cyber"}},
+    )
+
+    with pytest.raises(RuntimeError, match="refused"):
+        AnthropicNarrationClient(
+            api_key="test-key", model="claude-sonnet-5"
+        ).generate_bilingual_narrative(metrics)
+
+
+def test_resolve_llm_provider_defaults_to_openai_and_rejects_unknown_values() -> None:
+    assert resolve_llm_provider(None) == "openai"
+    assert resolve_llm_provider("") == "openai"
+    assert resolve_llm_provider("  Anthropic ") == "anthropic"
+
+    with pytest.raises(ValueError, match="MX_JOBS_LLM_PROVIDER"):
+        resolve_llm_provider("antropic")
+
+
+def test_report_config_runtime_env_is_provider_aware() -> None:
+    anthropic_config = ReportConfig(
+        cadence="monthly",
+        dry_run=False,
+        llm_provider="anthropic",
+        anthropic_api_key="test-key",
+        anthropic_model="claude-sonnet-5",
+        public_key_salt="test-salt",
+    )
+    openai_config = ReportConfig(
+        cadence="monthly",
+        dry_run=False,
+        openai_api_key="test-key",
+        openai_model="gpt-5.4",
+        public_key_salt="test-salt",
+    )
+
+    assert anthropic_config.missing_runtime_env() == ()
+    assert anthropic_config.narration_model == "claude-sonnet-5"
+    assert openai_config.missing_runtime_env() == ()
+    assert openai_config.narration_model == "gpt-5.4"
+    assert ReportConfig(cadence="monthly", dry_run=False).missing_runtime_env() == (
+        "OPENAI_API_KEY",
+        "MX_JOBS_OPENAI_MODEL",
+        "MX_JOBS_PUBLIC_KEY_SALT",
+    )
+    assert ReportConfig(
+        cadence="monthly", dry_run=False, llm_provider="anthropic"
+    ).missing_runtime_env() == (
+        "ANTHROPIC_API_KEY",
+        "MX_JOBS_ANTHROPIC_MODEL",
+        "MX_JOBS_PUBLIC_KEY_SALT",
+    )
+
+
 def test_report_pipeline_dry_run_summarizes_period_without_artifacts(tmp_path: Path) -> None:
     curated_root = write_curated_fixture(tmp_path)
     output_root = tmp_path / "reports"
@@ -255,7 +405,7 @@ def test_report_pipeline_write_handles_empty_period_without_openai(tmp_path: Pat
     with summary.public_csv_path.open("r", encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
     assert rows == []
-    assert "Skipped OpenAI narration because the selected period contains no jobs." in "\n".join(
+    assert "Skipped narration because the selected period contains no jobs." in "\n".join(
         summary.notes
     )
 
@@ -284,6 +434,59 @@ def test_report_pipeline_writes_artifacts_with_mock_openai_base_url(tmp_path: Pa
     assert summary.markdown_paths is not None
     markdown_text = summary.markdown_paths["en"].read_text(encoding="utf-8")
     assert "distinct jobs were observed during" in markdown_text
+
+
+def test_report_pipeline_writes_artifacts_with_mock_anthropic_base_url(tmp_path: Path) -> None:
+    curated_root = write_curated_fixture(tmp_path)
+
+    summary, exit_code = ReportPipeline().run(
+        ReportConfig(
+            cadence="monthly",
+            as_of_date=date(2026, 4, 1),
+            curated_root=curated_root,
+            output_root=tmp_path / "reports-anthropic",
+            dry_run=False,
+            llm_provider="anthropic",
+            anthropic_api_key="test-key",
+            anthropic_model="claude-sonnet-5",
+            public_key_salt="test-salt",
+            anthropic_base_url="mock://messages",
+        )
+    )
+
+    assert exit_code == 0
+    assert summary.status == "report_written"
+    assert summary.narration_status == "generated"
+    assert summary.markdown_paths is not None
+    markdown_text = summary.markdown_paths["en"].read_text(encoding="utf-8")
+    assert "distinct jobs were observed during" in markdown_text
+
+
+def test_report_pipeline_fails_closed_when_anthropic_runtime_env_is_missing(
+    tmp_path: Path,
+) -> None:
+    curated_root = write_curated_fixture(tmp_path)
+
+    summary, exit_code = ReportPipeline().run(
+        ReportConfig(
+            cadence="monthly",
+            as_of_date=date(2026, 4, 1),
+            curated_root=curated_root,
+            output_root=tmp_path / "reports",
+            dry_run=False,
+            llm_provider="anthropic",
+            public_key_salt="test-salt",
+        )
+    )
+
+    notes = "\n".join(summary.notes)
+    assert exit_code == 1
+    assert summary.status == "report_config_invalid"
+    assert "ANTHROPIC_API_KEY" in notes
+    assert "MX_JOBS_ANTHROPIC_MODEL" in notes
+    # selecting anthropic must not demand the OpenAI variables
+    assert "OPENAI_API_KEY" not in notes
+    assert "MX_JOBS_OPENAI_MODEL" not in notes
 
 
 def test_report_pipeline_fails_closed_when_runtime_env_is_missing(tmp_path: Path) -> None:

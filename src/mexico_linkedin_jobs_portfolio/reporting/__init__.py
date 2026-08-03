@@ -1,5 +1,9 @@
 """Reporting pipeline, public filtering, and narrative generation."""
 
+from mexico_linkedin_jobs_portfolio.reporting.anthropic_narration import (
+    AnthropicNarrationClient,
+    build_anthropic_narration_request_body,
+)
 from mexico_linkedin_jobs_portfolio.reporting.openai_narration import (
     NarrationClient,
     OpenAINarrationClient,
@@ -14,10 +18,12 @@ from mexico_linkedin_jobs_portfolio.reporting.publication import (
 from mexico_linkedin_jobs_portfolio.reporting.renderers import render_html, render_markdown
 
 __all__ = [
+    "AnthropicNarrationClient",
     "NarrationClient",
     "OpenAINarrationClient",
     "PUBLIC_CSV_FIELDNAMES",
     "ReportPipeline",
+    "build_anthropic_narration_request_body",
     "build_narration_request_body",
     "build_public_job_records",
     "render_html",

@@ -17,6 +17,7 @@ from mexico_linkedin_jobs_portfolio.models import (
     ReportMetrics,
     ReportRunSummary,
 )
+from mexico_linkedin_jobs_portfolio.reporting.anthropic_narration import AnthropicNarrationClient
 from mexico_linkedin_jobs_portfolio.reporting.narrative_cache import CachingNarrationClient
 from mexico_linkedin_jobs_portfolio.reporting.openai_narration import (
     NarrationClient,
@@ -28,6 +29,22 @@ from mexico_linkedin_jobs_portfolio.reporting.publication import (
     write_public_csv,
 )
 from mexico_linkedin_jobs_portfolio.reporting.renderers import render_html, render_markdown
+
+
+def _build_narration_client(config: ReportConfig) -> NarrationClient:
+    """Return the narration client for the configured provider."""
+
+    if config.llm_provider == "anthropic":
+        return AnthropicNarrationClient(
+            api_key=config.anthropic_api_key or "",
+            model=config.anthropic_model or "",
+            base_url=config.anthropic_base_url,
+        )
+    return OpenAINarrationClient(
+        api_key=config.openai_api_key or "",
+        model=config.openai_model or "",
+        base_url=config.openai_base_url,
+    )
 
 
 class ReportPipeline:
@@ -55,7 +72,7 @@ class ReportPipeline:
 
         if config.dry_run:
             notes.append(
-                "Dry run computed the aggregate metrics payload without writing artifacts or calling OpenAI."
+                "Dry run computed the aggregate metrics payload without writing artifacts or calling the narration provider."
             )
             return (
                 self._build_summary(
@@ -89,7 +106,7 @@ class ReportPipeline:
         if metrics_result.metrics.job_count == 0:
             narrative = build_mock_narrative(
                 metrics_result.metrics,
-                config.openai_model or "empty-period-local",
+                config.narration_model or "empty-period-local",
             )
             public_rows = build_public_job_records(
                 metrics_result.latest_jobs, config.public_key_salt or ""
@@ -97,7 +114,7 @@ class ReportPipeline:
             artifacts = self._write_artifacts(
                 config, metrics_result.metrics, narrative, public_rows
             )
-            notes.append("Skipped OpenAI narration because the selected period contains no jobs.")
+            notes.append("Skipped narration because the selected period contains no jobs.")
             notes.append(f"Wrote report artifacts to {artifacts.artifact_dir}.")
             summary = self._build_summary(
                 config,
@@ -114,11 +131,7 @@ class ReportPipeline:
             )
             return summary, 0
 
-        narration_client = self.narration_client or OpenAINarrationClient(
-            api_key=config.openai_api_key or "",
-            model=config.openai_model or "",
-            base_url=config.openai_base_url,
-        )
+        narration_client = self.narration_client or _build_narration_client(config)
         if config.narrative_cache_root is not None:
             narration_client = CachingNarrationClient(
                 inner=narration_client, cache_root=config.narrative_cache_root
