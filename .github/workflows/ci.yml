@@ -17,6 +17,10 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     env:
       PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
 
@@ -29,7 +33,7 @@ jobs:
         id: setup_python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install project dependencies
         id: install
@@ -37,7 +41,9 @@ jobs:
 
       - name: Install build tools
         id: install_build
-        run: python -m pip install wheel build
+        # --no-isolation skips installing build-system.requires, so setuptools
+        # has to be here: python 3.12 dropped the bundled copy 3.11 provided.
+        run: python -m pip install wheel build setuptools
 
       - name: Run Ruff
         id: ruff
@@ -76,9 +82,10 @@ jobs:
         shell: bash
         run: |
           {
-            echo "# CI summary"
+            echo "# CI summary (Python ${{ matrix.python-version }})"
             echo
             echo "- Trigger: \`${{ github.event_name }}\`"
+            echo "- Python: \`${{ matrix.python-version }}\`"
             echo "- Ref: \`${{ github.ref_name }}\`"
             echo "- Ruff: \`${{ steps.ruff.outcome }}\`"
             echo "- Pytest: \`${{ steps.pytest.outcome }}\`"

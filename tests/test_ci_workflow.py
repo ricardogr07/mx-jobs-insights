@@ -20,7 +20,11 @@ def test_ci_workflow_contract_matches_local_green_gate() -> None:
     assert "contents: read" in text
     assert "actions/checkout@v4" in text
     assert "actions/setup-python@v5" in text
-    assert 'python-version: "3.11"' in text
+    # the gate runs across a python matrix, not a single pinned interpreter
+    assert "matrix:" in text
+    assert "fail-fast: false" in text
+    assert 'python-version: ["3.11", "3.12", "3.13"]' in text
+    assert "python-version: ${{ matrix.python-version }}" in text
     assert 'python -m pip install -e ".[dev]"' in text
     assert "python -m ruff check src tests" in text
     assert "python -m pytest -q --basetemp .pytest_tmp" in text
