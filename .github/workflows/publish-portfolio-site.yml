@@ -40,6 +40,10 @@ jobs:
       MX_JOBS_OPENAI_MODEL: ${{ vars.MX_JOBS_OPENAI_MODEL }}
       MX_JOBS_PUBLIC_KEY_SALT: ${{ secrets.MX_JOBS_PUBLIC_KEY_SALT }}
       MX_JOBS_OPENAI_BASE_URL: ${{ vars.MX_JOBS_OPENAI_BASE_URL }}
+      MX_JOBS_LLM_PROVIDER: ${{ vars.MX_JOBS_LLM_PROVIDER }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      MX_JOBS_ANTHROPIC_MODEL: ${{ vars.MX_JOBS_ANTHROPIC_MODEL }}
+      MX_JOBS_ANTHROPIC_BASE_URL: ${{ vars.MX_JOBS_ANTHROPIC_BASE_URL }}
       PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
 
     steps:

@@ -13,13 +13,19 @@ from typing import cast
 
 from mexico_linkedin_jobs_portfolio.automation import PipelineOrchestrator
 from mexico_linkedin_jobs_portfolio.config import (
+    ANTHROPIC_API_KEY_ENV,
+    ANTHROPIC_BASE_URL_ENV,
+    ANTHROPIC_MODEL_ENV,
     BIGQUERY_PRIVATE_DATASET_ENV,
     BIGQUERY_PUBLIC_DATASET_ENV,
+    DEFAULT_ANTHROPIC_BASE_URL,
+    DEFAULT_OPENAI_BASE_URL,
     DEFAULT_UPSTREAM_REPO_URL,
     GCP_REGION_ENV,
     GCS_BUCKET_ENV,
     GCS_PREFIX_ENV,
     GOOGLE_CLOUD_PROJECT_ENV,
+    LLM_PROVIDER_ENV,
     OPENAI_API_KEY_ENV,
     OPENAI_BASE_URL_ENV,
     OPENAI_MODEL_ENV,
@@ -40,6 +46,7 @@ from mexico_linkedin_jobs_portfolio.config import (
     SiteConfig,
     SourceMode,
     UpstreamWorkspaceConfig,
+    resolve_llm_provider,
 )
 from mexico_linkedin_jobs_portfolio.curation import (
     CuratedWriteResult,
@@ -131,7 +138,7 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Compute the report period and metrics without writing artifacts or calling OpenAI.",
+        help="Compute the report period and metrics without writing artifacts or calling the narration provider.",
     )
     report_parser.add_argument(
         "--filter-by-posted-date",
@@ -244,8 +251,12 @@ def build_report_config(args: argparse.Namespace) -> ReportConfig:
         openai_api_key=os.environ.get(OPENAI_API_KEY_ENV),
         openai_model=os.environ.get(OPENAI_MODEL_ENV),
         public_key_salt=os.environ.get(PUBLIC_KEY_SALT_ENV),
-        openai_base_url=os.environ.get(OPENAI_BASE_URL_ENV, "https://api.openai.com/v1"),
+        openai_base_url=os.environ.get(OPENAI_BASE_URL_ENV) or DEFAULT_OPENAI_BASE_URL,
         filter_by_posted_date=bool(getattr(args, "filter_by_posted_date", False)),
+        llm_provider=resolve_llm_provider(os.environ.get(LLM_PROVIDER_ENV)),
+        anthropic_api_key=os.environ.get(ANTHROPIC_API_KEY_ENV),
+        anthropic_model=os.environ.get(ANTHROPIC_MODEL_ENV),
+        anthropic_base_url=os.environ.get(ANTHROPIC_BASE_URL_ENV) or DEFAULT_ANTHROPIC_BASE_URL,
     )
 
 
@@ -279,7 +290,11 @@ def build_pipeline_config(args: argparse.Namespace) -> PipelineConfig:
         openai_api_key=os.environ.get(OPENAI_API_KEY_ENV),
         openai_model=os.environ.get(OPENAI_MODEL_ENV),
         public_key_salt=os.environ.get(PUBLIC_KEY_SALT_ENV),
-        openai_base_url=os.environ.get(OPENAI_BASE_URL_ENV, "https://api.openai.com/v1"),
+        openai_base_url=os.environ.get(OPENAI_BASE_URL_ENV) or DEFAULT_OPENAI_BASE_URL,
+        llm_provider=resolve_llm_provider(os.environ.get(LLM_PROVIDER_ENV)),
+        anthropic_api_key=os.environ.get(ANTHROPIC_API_KEY_ENV),
+        anthropic_model=os.environ.get(ANTHROPIC_MODEL_ENV),
+        anthropic_base_url=os.environ.get(ANTHROPIC_BASE_URL_ENV) or DEFAULT_ANTHROPIC_BASE_URL,
         upstream_repo_url=os.environ.get(UPSTREAM_REPO_URL_ENV, DEFAULT_UPSTREAM_REPO_URL),
         upstream_ref=os.environ.get(UPSTREAM_REF_ENV),
         google_cloud_project=os.environ.get(GOOGLE_CLOUD_PROJECT_ENV),

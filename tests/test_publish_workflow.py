@@ -42,6 +42,11 @@ def test_publish_workflow_contract() -> None:
     assert "OPENAI_API_KEY" in text
     assert "MX_JOBS_OPENAI_MODEL" in text
     assert "MX_JOBS_PUBLIC_KEY_SALT" in text
+    # both narration providers are wired; MX_JOBS_LLM_PROVIDER selects one at run time
+    assert "MX_JOBS_LLM_PROVIDER" in text
+    assert "ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}" in text
+    assert "MX_JOBS_ANTHROPIC_MODEL" in text
+    assert "MX_JOBS_ANTHROPIC_BASE_URL" in text
     assert "pipeline --cadence" in text or "pipeline" in text
     assert "--filter-by-posted-date" in text
     assert "narratives" in text

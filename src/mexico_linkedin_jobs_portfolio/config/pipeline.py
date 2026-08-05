@@ -17,12 +17,20 @@ from mexico_linkedin_jobs_portfolio.config.cloud import (
 )
 from mexico_linkedin_jobs_portfolio.config.curated import CuratedStorageConfig
 from mexico_linkedin_jobs_portfolio.config.reporting import (
+    ANTHROPIC_API_KEY_ENV,
+    ANTHROPIC_BASE_URL_ENV,
+    ANTHROPIC_MODEL_ENV,
+    DEFAULT_ANTHROPIC_BASE_URL,
+    DEFAULT_LLM_PROVIDER,
+    DEFAULT_OPENAI_BASE_URL,
+    LLM_PROVIDER_ENV,
     OPENAI_API_KEY_ENV,
     OPENAI_BASE_URL_ENV,
     OPENAI_MODEL_ENV,
     PUBLIC_KEY_SALT_ENV,
     REPORT_CADENCES,
     REPORT_LOCALES,
+    LLMProvider,
     ReportCadence,
     ReportConfig,
     ReportLocale,
@@ -73,7 +81,11 @@ class PipelineConfig:
     openai_api_key: str | None = None
     openai_model: str | None = None
     public_key_salt: str | None = None
-    openai_base_url: str = "https://api.openai.com/v1"
+    openai_base_url: str = DEFAULT_OPENAI_BASE_URL
+    llm_provider: LLMProvider = DEFAULT_LLM_PROVIDER
+    anthropic_api_key: str | None = None
+    anthropic_model: str | None = None
+    anthropic_base_url: str = DEFAULT_ANTHROPIC_BASE_URL
     upstream_repo_url: str = DEFAULT_UPSTREAM_REPO_URL
     upstream_ref: str | None = None
     google_cloud_project: str | None = None
@@ -110,6 +122,10 @@ class PipelineConfig:
             openai_base_url=self.openai_base_url,
             filter_by_posted_date=self.filter_by_posted_date,
             narrative_cache_root=self.narrative_cache_root_resolved,
+            llm_provider=self.llm_provider,
+            anthropic_api_key=self.anthropic_api_key,
+            anthropic_model=self.anthropic_model,
+            anthropic_base_url=self.anthropic_base_url,
         )
 
     @property
@@ -147,14 +163,8 @@ class PipelineConfig:
         return (self.locale,)
 
     def missing_runtime_env(self) -> tuple[str, ...]:
-        missing: list[str] = []
-        if not self.openai_api_key:
-            missing.append(OPENAI_API_KEY_ENV)
-        if not self.openai_model:
-            missing.append(OPENAI_MODEL_ENV)
-        if not self.public_key_salt:
-            missing.append(PUBLIC_KEY_SALT_ENV)
-        return tuple(missing)
+        # The report config owns the provider-aware rule; keep one implementation.
+        return self.report_config.missing_runtime_env()
 
     def missing_cloud_runtime_env(self) -> tuple[str, ...]:
         if not self.cloud_environment.cloud_requested:
@@ -173,7 +183,9 @@ class PipelineConfig:
             "report_root": str(self.report_config.report_storage.resolved_root()),
             "docs_root": str(self.site_config.docs_root_resolved),
             "dry_run": self.dry_run,
+            "llm_provider": self.llm_provider,
             "openai_base_url": self.openai_base_url,
+            "anthropic_base_url": self.anthropic_base_url,
             "upstream_repo_url": self.upstream_repo_url,
             "upstream_ref": self.workspace.preferred_ref,
             "missing_runtime_env": list(self.missing_runtime_env()) if not self.dry_run else [],
@@ -191,6 +203,12 @@ class PipelineConfig:
                 PUBLIC_KEY_SALT_ENV,
                 OPENAI_BASE_URL_ENV,
             ],
+            "anthropic_env_names": [
+                ANTHROPIC_API_KEY_ENV,
+                ANTHROPIC_MODEL_ENV,
+                ANTHROPIC_BASE_URL_ENV,
+            ],
+            "llm_provider_env_name": LLM_PROVIDER_ENV,
             "cloud_environment": self.cloud_environment.to_display_dict(),
             "cloud_env_names": [
                 GOOGLE_CLOUD_PROJECT_ENV,
