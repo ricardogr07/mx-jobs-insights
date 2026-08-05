@@ -218,9 +218,15 @@ def test_build_anthropic_narration_request_body_contains_only_aggregate_metrics(
     assert body["thinking"] == {"type": "disabled"}
     # the system prompt is a top-level string, never a message
     assert isinstance(body["system"], str)
+    # the stripped schema no longer carries the count, so the prompt must state it
+    assert "exactly 3 bullets" in body["system"]
     assert [message["role"] for message in body["messages"]] == ["user"]
     assert body["output_config"]["format"]["type"] == "json_schema"
     assert body["output_config"]["format"]["schema"]["required"] == ["en", "es"]
+    # Anthropic rejects minItems values other than 0 or 1, so the exact-count
+    # bounds are stripped from this request and enforced on parse instead.
+    assert "minItems" not in serialized
+    assert "maxItems" not in serialized
     assert "job-1" not in serialized
     assert "https://example.com/jobs/1" not in serialized
     assert "Build forecasting models for retail demand." not in serialized
@@ -274,6 +280,33 @@ def test_anthropic_narration_client_reads_text_content_blocks(tmp_path: Path, mo
     assert narrative.model == "claude-sonnet-5-responded"
     assert narrative.en_headline == "EN headline"
     assert narrative.es_bullets == ("u", "d", "t")
+
+
+def test_anthropic_narration_client_raises_on_wrong_bullet_count(
+    tmp_path: Path, monkeypatch
+) -> None:
+    metrics = build_sample_metrics(tmp_path)
+    payload = {
+        "model": "claude-sonnet-5",
+        "stop_reason": "end_turn",
+        "content": [
+            {
+                "type": "text",
+                "text": json.dumps(
+                    {
+                        "en": {"headline": "EN headline", "bullets": ["a", "b"]},
+                        "es": {"headline": "ES headline", "bullets": ["u", "d", "t"]},
+                    }
+                ),
+            }
+        ],
+    }
+    monkeypatch.setattr(AnthropicNarrationClient, "_post_json", lambda self, body: payload)
+
+    with pytest.raises(RuntimeError, match="en bullets must be a list of 3"):
+        AnthropicNarrationClient(
+            api_key="test-key", model="claude-sonnet-5"
+        ).generate_bilingual_narrative(metrics)
 
 
 def test_anthropic_narration_client_raises_on_refusal(tmp_path: Path, monkeypatch) -> None:

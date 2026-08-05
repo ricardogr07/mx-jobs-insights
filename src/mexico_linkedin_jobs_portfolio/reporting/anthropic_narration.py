@@ -19,6 +19,38 @@ ANTHROPIC_VERSION = "2023-06-01"
 # needs no reasoning headroom. max_tokens caps thinking plus response text together.
 NARRATION_MAX_TOKENS = 2048
 
+NARRATIVE_BULLET_COUNT = 3
+
+# The OpenAI schema carries the exact bullet count in minItems/maxItems, which is
+# stripped below because Anthropic rejects it. Nothing else in the shared system
+# prompt states the count, so without this the model is never told the requirement
+# and only finds out by being rejected on parse.
+_BULLET_COUNT_INSTRUCTION = (
+    f"Each locale must contain exactly {NARRATIVE_BULLET_COUNT} bullets, no more and no fewer."
+)
+
+_UNSUPPORTED_SCHEMA_KEYS = frozenset({"minItems", "maxItems"})
+
+
+def _strip_unsupported_schema_keys(node: object) -> object:
+    """Drop JSON Schema keywords the Anthropic structured-output validator rejects.
+
+    Anthropic only accepts `minItems` values of 0 or 1, so the exact-count
+    constraint the OpenAI schema uses is a hard 400 here. The OpenAI client keeps
+    the strict schema; this request drops the bounds and the count is enforced on
+    parse instead, in `_extract_narrative_payload`.
+    """
+
+    if isinstance(node, dict):
+        return {
+            key: _strip_unsupported_schema_keys(value)
+            for key, value in node.items()
+            if key not in _UNSUPPORTED_SCHEMA_KEYS
+        }
+    if isinstance(node, list):
+        return [_strip_unsupported_schema_keys(item) for item in node]
+    return node
+
 
 @dataclass(frozen=True, slots=True)
 class AnthropicNarrationClient:
@@ -67,15 +99,13 @@ class AnthropicNarrationClient:
             raise RuntimeError(f"Anthropic Messages API request failed: {exc}") from exc
 
 
-def build_anthropic_narration_request_body(
-    metrics: ReportMetrics, model: str
-) -> dict[str, object]:
+def build_anthropic_narration_request_body(metrics: ReportMetrics, model: str) -> dict[str, object]:
     """Build the aggregate-only Messages API request body."""
 
     return {
         "model": model,
         "max_tokens": NARRATION_MAX_TOKENS,
-        "system": _SYSTEM_PROMPT,
+        "system": _SYSTEM_PROMPT + " " + _BULLET_COUNT_INSTRUCTION,
         "thinking": {"type": "disabled"},
         "messages": [
             {
@@ -94,7 +124,7 @@ def build_anthropic_narration_request_body(
         "output_config": {
             "format": {
                 "type": "json_schema",
-                "schema": _NARRATIVE_SCHEMA,
+                "schema": _strip_unsupported_schema_keys(_NARRATIVE_SCHEMA),
             }
         },
     }
@@ -126,4 +156,16 @@ def _extract_narrative_payload(response_payload: dict[str, object]) -> dict[str,
         raise RuntimeError("Anthropic narrative response was not valid JSON.") from exc
     if not isinstance(narrative, dict):
         raise RuntimeError("Anthropic narrative response did not match the expected JSON object.")
+
+    for locale in ("en", "es"):
+        section = narrative.get(locale)
+        if not isinstance(section, dict):
+            raise RuntimeError(f"Anthropic narrative response is missing the {locale} section.")
+        bullets = section.get("bullets")
+        if not isinstance(bullets, list) or len(bullets) != NARRATIVE_BULLET_COUNT:
+            raise RuntimeError(
+                f"Anthropic narrative {locale} bullets must be a list of "
+                f"{NARRATIVE_BULLET_COUNT} items."
+            )
+
     return narrative
