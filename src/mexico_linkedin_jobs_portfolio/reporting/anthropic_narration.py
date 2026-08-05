@@ -21,6 +21,14 @@ NARRATION_MAX_TOKENS = 2048
 
 NARRATIVE_BULLET_COUNT = 3
 
+# The OpenAI schema carries the exact bullet count in minItems/maxItems, which is
+# stripped below because Anthropic rejects it. Nothing else in the shared system
+# prompt states the count, so without this the model is never told the requirement
+# and only finds out by being rejected on parse.
+_BULLET_COUNT_INSTRUCTION = (
+    f"Each locale must contain exactly {NARRATIVE_BULLET_COUNT} bullets, no more and no fewer."
+)
+
 _UNSUPPORTED_SCHEMA_KEYS = frozenset({"minItems", "maxItems"})
 
 
@@ -97,7 +105,7 @@ def build_anthropic_narration_request_body(metrics: ReportMetrics, model: str) -
     return {
         "model": model,
         "max_tokens": NARRATION_MAX_TOKENS,
-        "system": _SYSTEM_PROMPT,
+        "system": _SYSTEM_PROMPT + " " + _BULLET_COUNT_INSTRUCTION,
         "thinking": {"type": "disabled"},
         "messages": [
             {

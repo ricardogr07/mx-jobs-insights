@@ -218,6 +218,8 @@ def test_build_anthropic_narration_request_body_contains_only_aggregate_metrics(
     assert body["thinking"] == {"type": "disabled"}
     # the system prompt is a top-level string, never a message
     assert isinstance(body["system"], str)
+    # the stripped schema no longer carries the count, so the prompt must state it
+    assert "exactly 3 bullets" in body["system"]
     assert [message["role"] for message in body["messages"]] == ["user"]
     assert body["output_config"]["format"]["type"] == "json_schema"
     assert body["output_config"]["format"]["schema"]["required"] == ["en", "es"]
